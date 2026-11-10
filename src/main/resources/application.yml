@@ -1,0 +1,14 @@
+server:
+  port: 31313
+
+spring:
+  application:
+    name: sentinel
+  datasource:
+    url: ${SENTINEL_DB_URL:jdbc:mysql://localhost:3306/ora9a}
+    username: ${SENTINEL_DB_USER:rs5000}
+    password: ${SENTINEL_DB_PASSWORD:rs5000}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
