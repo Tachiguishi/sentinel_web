@@ -19,6 +19,7 @@ public class DeviceService {
 	private final DeviceRepository deviceRepository;
 	private SCLFileService sclFileService;
 	private DataSetService dataSetService;
+	private FCDAService fcdaService;
 
 	@Autowired
 	public DeviceService(DeviceRepository repository){
@@ -33,6 +34,11 @@ public class DeviceService {
 	@Autowired
 	public void setDataSetService(DataSetService dataSetService){
 		this.dataSetService = dataSetService;
+	}
+
+	@Autowired
+	public void setFcdaService(FCDAService fcdaService) {
+		this.fcdaService = fcdaService;
 	}
 
 	public Device findByName(String name){
@@ -112,6 +118,7 @@ public class DeviceService {
 	public void delete(Device device){
 		sclFileService.deleteByIdentifier(device.getName());
 		dataSetService.deleteByDevice(device);
+		fcdaService.deleteByDevice(device);
 		deviceRepository.delete(device);
 	}
 

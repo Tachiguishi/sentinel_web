@@ -32,6 +32,11 @@ import java.util.Map;
 class ScdSqliteConfiguration {
 	static final String DIALECT = ScdSqliteDialect.class.getName();
 	static final String NAMING_STRATEGY = "org.hibernate.boot.model.naming.PhysicalNamingStrategySnakeCaseImpl";
+	private final boolean createSchema;
+
+	ScdSqliteConfiguration(boolean createSchema) {
+		this.createSchema = createSchema;
+	}
 
 	@Bean
 	LocalContainerEntityManagerFactoryBean entityManagerFactory(DataSource dataSource) {
@@ -41,7 +46,7 @@ class ScdSqliteConfiguration {
 		factory.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
 		factory.setJpaPropertyMap(Map.of(
 				"hibernate.dialect", DIALECT,
-				"hibernate.hbm2ddl.auto", "create-only",
+				"hibernate.hbm2ddl.auto", createSchema ? "create-only" : "none",
 				"hibernate.hbm2ddl.halt_on_error", true,
 				"hibernate.physical_naming_strategy", NAMING_STRATEGY));
 		return factory;

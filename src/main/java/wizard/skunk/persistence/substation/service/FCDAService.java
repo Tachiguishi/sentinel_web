@@ -60,6 +60,11 @@ public class FCDAService {
 		fcdaRepository.delete(fcda);
 	}
 
+	@Transactional
+	public void deleteByDevice(Device device) {
+		fcdaRepository.deleteAll(fcdaRepository.findByDevice(device));
+	}
+
 	public void saveAll(List<FCDA> fcdaList){
 		fcdaRepository.saveAll(fcdaList);
 	}

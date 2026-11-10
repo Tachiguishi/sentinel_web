@@ -187,7 +187,7 @@ async function uploadScd(event: Event) {
 <template>
   <div class="min-h-screen bg-[#f2f5f4] text-slate-900">
     <header class="border-b border-slate-800 bg-[#101e28] text-white">
-      <div class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-5 py-5 sm:px-8">
+      <div class="mx-auto flex max-w-[100rem] items-center justify-between gap-3 px-5 py-5 sm:px-8">
         <span class="text-sm font-semibold tracking-[0.16em]">SENTINEL</span>
         <RouterLink :to="{ name: 'stations' }" class="text-sm text-teal-200 hover:underline">
           返回站点列表
@@ -195,7 +195,7 @@ async function uploadScd(event: Event) {
       </div>
     </header>
 
-    <main class="mx-auto max-w-6xl px-5 py-9 sm:px-8 sm:py-14">
+    <main class="mx-auto max-w-[100rem] px-5 py-9 sm:px-8 sm:py-14">
       <p class="mb-3 text-xs font-semibold tracking-[0.2em] text-teal-800">站点详情</p>
       <h1 class="text-3xl font-bold break-words sm:text-4xl">{{ station?.name ?? name }}</h1>
       <p v-if="station?.description" class="mt-3 text-sm break-words text-slate-600">
@@ -206,7 +206,7 @@ async function uploadScd(event: Event) {
         正在加载站点信息…
       </p>
 
-      <div class="mt-8 grid gap-5 lg:grid-cols-[minmax(15rem,1fr)_minmax(0,3fr)]">
+      <div class="mt-8 grid gap-5 lg:grid-cols-[minmax(15rem,1fr)_minmax(0,4fr)]">
         <section
           aria-labelledby="device-list"
           class="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
@@ -278,7 +278,7 @@ async function uploadScd(event: Event) {
           </p>
           <template v-else>
             <p class="mt-1 text-sm break-words text-slate-600">{{ selectedDevice }}</p>
-            <div class="mt-4 grid min-w-0 gap-5 md:grid-cols-[minmax(10rem,1fr)_minmax(0,2fr)]">
+            <div class="mt-4 grid min-w-0 gap-5 md:grid-cols-[minmax(10rem,1fr)_minmax(0,3fr)]">
               <section aria-labelledby="dataset-list" class="min-w-0">
                 <h3 id="dataset-list" class="text-sm font-semibold">数据集列表</h3>
                 <div v-if="dataSetsError" class="mt-3 text-sm">

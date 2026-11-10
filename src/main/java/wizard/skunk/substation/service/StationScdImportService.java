@@ -2,6 +2,7 @@ package wizard.skunk.substation.service;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -37,13 +38,17 @@ public class StationScdImportService {
 			StandardMonitor monitor = new StandardMonitor();
 			SclService.ParsedScd parsed = readScd(scd, monitor);
 
-			Path staging = Files.createTempFile(directory, ".import-", ".sqlite");
-			try {
-				persist(staging, parsed, monitor);
-				Files.move(staging, databasePath(stationName),
-						StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-			} finally {
-				Files.deleteIfExists(staging);
+			Path database = databasePath(stationName);
+			if (Files.notExists(database)) {
+				Path staging = Files.createTempFile(directory, ".import-", ".sqlite");
+				try {
+					persist(staging, parsed, monitor, true);
+					Files.move(staging, database, StandardCopyOption.ATOMIC_MOVE);
+				} finally {
+					Files.deleteIfExists(staging);
+				}
+			} else {
+				persist(database, parsed, monitor, false);
 			}
 
 			return parsed.devices().size();
@@ -72,22 +77,26 @@ public class StationScdImportService {
 		return parsed;
 	}
 
-	private void persist(Path database, SclService.ParsedScd parsed, StandardMonitor monitor) {
+	private void persist(Path database, SclService.ParsedScd parsed, StandardMonitor monitor, boolean createSchema) {
 		// A separate context keeps the copied repositories and transaction manager away from MySQL.
 		try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
 			context.registerBean(DataSource.class, () -> {
 				DriverManagerDataSource dataSource = new DriverManagerDataSource(
-						SqliteJdbcUrlBuilder.fromPath(database.toString()));
+						SqliteJdbcUrlBuilder.fromPath(database.toString()) + "?mode=rw");
 				dataSource.setDriverClassName("org.sqlite.JDBC");
 				return dataSource;
 			});
-			context.register(ScdSqliteConfiguration.class);
+			context.registerBean(ScdSqliteConfiguration.class, () -> new ScdSqliteConfiguration(createSchema));
 			context.refresh();
 
 			TransactionTemplate transaction = new TransactionTemplate(
 					context.getBean(JpaTransactionManager.class));
-			transaction.executeWithoutResult(status ->
-					context.getBean(ScdService.class).persistSCD(parsed.version(), parsed.devices(), monitor));
+			transaction.executeWithoutResult(status -> {
+				if (!createSchema) {
+					LegacyScdSqliteIds.repair(new JdbcTemplate(context.getBean(DataSource.class)));
+				}
+				context.getBean(ScdService.class).persistSCD(parsed.version(), parsed.devices(), monitor);
+			});
 		}
 	}
 

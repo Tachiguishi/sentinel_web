@@ -74,8 +74,10 @@ public class ScdService {
 
 		clear();
 
-		List<Device> devices = deviceService.find();
-		List<Device> removedDevices = new ArrayList<>(devices);
+		List<Device> devices = deviceService.findAll();
+		List<Device> removedDevices = new ArrayList<>(devices.stream()
+				.filter(device -> device.getSource() == DataSource.SCD.index && !device.isIgnored())
+				.toList());
 
 		iedList.sort(Comparator.comparing(IED::getDescription));
 
@@ -91,14 +93,6 @@ public class ScdService {
 		}
 		long stop2 = System.currentTimeMillis();
 		log.info("Persist IED cost: " + (stop2 - stop1) + "ms");
-
-		monitor.beginTask("Delete IED", removedDevices.size());
-		for(Device device : removedDevices){
-			monitor.subTask(device.getName());
-			deviceService.delete(device);
-			cdcService.deleteByDevice(device);
-			monitor.worked(1);
-		}
 
 		monitor.beginTask("Persist LogicalLink", iedList.size());
 		for(IED ied : iedList){
@@ -117,9 +111,21 @@ public class ScdService {
 		fcdaService.saveAll(receiverFCDAList);
 		stop1 = System.currentTimeMillis();
 		log.info("Persist LogicalLink cost: " + (stop1 - stop2) + "ms");
+
+		monitor.beginTask("Delete IED", removedDevices.size());
+		for (Device device : removedDevices) {
+			monitor.subTask(device.getName());
+			Set<LogicalLink> links = new LinkedHashSet<>(logicalLinkService.findByReceiverDevice(device));
+			links.addAll(logicalLinkService.findBySenderDevice(device));
+			logicalLinkService.deleteLogicalLinks(new ArrayList<>(links));
+			cdcService.deleteByDevice(device);
+			deviceService.delete(device);
+			monitor.worked(1);
+		}
 	}
 
 	private void persistCDC(Device device, IED ied){
+		cdcService.deleteByDevice(device);
 		List<DictionaryForCDC> dictionaryForCDCs = new ArrayList<>();
 		for(wizard.skunk.parser.domain.CDCMap scdCDC : ied.getCdcMaps()){
 			DictionaryForCDC dictionaryForCDC = new DictionaryForCDC();
@@ -163,6 +169,10 @@ public class ScdService {
 		List<LogicalLink> removedLogicalLinks = new ArrayList<>(existLogicalLinks);
 		for(wizard.skunk.parser.domain.LogicalLink scdLogicalLink : ied.getLogicalLinks()){
 			FCDA receiverFcda = fcdaMap.get(ied.getName()).get(scdLogicalLink.getReceiverReference());
+			if (receiverFcda == null) {
+				log.warn("Receiver FCDA not found: {}", scdLogicalLink.getReceiverReference());
+				continue;
+			}
 			String senderDevice = scdLogicalLink.getSenderIedName();
 			if(!fcdaMap.containsKey(senderDevice)){
 				log.error("Sender IED not found: " + senderDevice + " for logicalLink: " + scdLogicalLink);
@@ -186,12 +196,13 @@ public class ScdService {
 				existLogicalLinks.add(logicalLink);
 			}
 			else{
-				if(senderFcda.getId().equals(logicalLink.getSenderFcda().getId())){
+				if(senderFcda.equals(logicalLink.getSenderFcda())){
 					logicalLink.setModifyStatus(ModifyStatus.NO_CHANGES);
 				}
 				else{
 					logicalLink.setModifyStatus(ModifyStatus.CREATED);
 					logicalLink.setSenderFcda(senderFcda);
+					logicalLink.setSenderDevice(senderFcda.getDevice());
 				}
 				removedLogicalLinks.remove(logicalLink);
 			}
@@ -459,7 +470,7 @@ public class ScdService {
 
 	private LogicalLink findLogicalLinkByReceiver(List<LogicalLink> logicalLinks, String reference){
 		for(LogicalLink logicalLink : logicalLinks){
-			if(logicalLink.getReceiverFcda().getDotReference().equals(reference)){
+			if(logicalLink.getReceiverFcda() != null && logicalLink.getReceiverFcda().getDotReference().equals(reference)){
 				return logicalLink;
 			}
 		}

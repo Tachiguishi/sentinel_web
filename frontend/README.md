@@ -30,7 +30,7 @@ npm run dev
 
 ## 更新站点 SCD
 
-从站点列表进入「详情」，点击「更新SCD」并选择不超过 50 MB 的 `.scd` 文件。导入结果保存在后端工作目录的 `data/scd/` 中，可用 `SENTINEL_SCD_DIRECTORY` 更改路径。每个 SQLite 文件用站点名的 UTF-8 SHA-256 命名。重新导入会在成功后替换该站点的数据库快照，失败时保留上一份。
+从站点列表进入「详情」，点击「更新SCD」并选择不超过 50 MB 的 `.scd` 文件。导入结果保存在后端工作目录的 `data/scd/` 中，可用 `SENTINEL_SCD_DIRECTORY` 更改路径。每个 SQLite 文件用站点名的 UTF-8 SHA-256 命名。首次导入创建数据库，之后在原库中以事务更新 SCD 数据，失败时回滚。
 
 ## Recommended IDE Setup
 

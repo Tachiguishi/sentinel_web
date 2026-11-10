@@ -77,7 +77,9 @@ public class DataSetService {
 
 	@Transactional
 	public void deleteByDevice(Device device){
-		dataSetRepository.deleteByDevice(device);
+		List<DataSet> dataSets = findByDevice(device);
+		deleteDataItemsByDataSet(dataSets);
+		dataSets.forEach(this::delete);
 	}
 
 	@Transactional
