@@ -19,6 +19,7 @@ import wizard.skunk.substation.service.StationScdReadService;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -39,7 +40,7 @@ public class StationScdController {
 	@GetMapping("/detail")
 	public StationDetail detail(@RequestParam String name) {
 		StationEntity station = findStation(name);
-		return new StationDetail(station.getName(), station.getDescription());
+		return new StationDetail(station.getName(), station.getDescription(), station.getScdUpdatedAt());
 	}
 
 	@GetMapping("/scd/devices")
@@ -96,11 +97,17 @@ public class StationScdController {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请选择非空的 SCD 文件");
 		}
 
+		StationScdImportService.ImportResult result;
 		try (InputStream upload = file.getInputStream()) {
-			return new ImportResult(imports.importScd(station.getName(), upload));
+			result = imports.importScd(station.getName(), upload);
 		} catch (IllegalArgumentException exception) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, exception.getMessage(), exception);
 		}
+
+		if (stations.recordScdUpdatedAt(station.getName(), result.scdUpdatedAt()) == 0) {
+			return new ImportResult(result.deviceCount(), findStation(station.getName()).getScdUpdatedAt());
+		}
+		return new ImportResult(result.deviceCount(), result.scdUpdatedAt());
 	}
 
 	private StationEntity findStation(String name) {
@@ -108,9 +115,9 @@ public class StationScdController {
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "站点不存在"));
 	}
 
-	public record StationDetail(String name, String description) {}
+	public record StationDetail(String name, String description, LocalDateTime scdUpdatedAt) {}
 
-	public record ImportResult(int deviceCount) {}
+	public record ImportResult(int deviceCount, LocalDateTime scdUpdatedAt) {}
 
 	public record CategoryOption(int value, String label) {
 		static CategoryOption from(DeviceCategory category) {

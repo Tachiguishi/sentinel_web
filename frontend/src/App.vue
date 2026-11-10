@@ -10,6 +10,7 @@ interface Station {
   ipAddress: string | null
   instantNo: number | null
   createAt: string
+  scdUpdatedAt: string | null
 }
 
 interface StationPage {
@@ -181,7 +182,7 @@ onMounted(() => void loadPage(1))
         >
           <table
             class="w-full border-separate border-spacing-0 text-left text-sm"
-            :class="{ 'min-w-[50rem]': !loading && !error && result?.rows.length }"
+            :class="{ 'min-w-[60rem]': !loading && !error && result?.rows.length }"
           >
             <caption id="directory-title" class="sr-only">
               站点记录
@@ -195,15 +196,16 @@ onMounted(() => void loadPage(1))
                 <th scope="col" aria-sort="descending" class="px-3 py-3 whitespace-nowrap sm:px-6">
                   创建时间
                 </th>
+                <th scope="col" class="px-3 py-3 whitespace-nowrap sm:px-6">SCD 更新时间</th>
                 <th scope="col" class="px-3 py-3 text-right whitespace-nowrap sm:px-6">操作</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="loading">
-                <td colspan="6" class="px-5 py-16 text-center text-slate-600">正在加载站点记录…</td>
+                <td colspan="7" class="px-5 py-16 text-center text-slate-600">正在加载站点记录…</td>
               </tr>
               <tr v-else-if="error">
-                <td colspan="6" class="px-5 py-12 text-center">
+                <td colspan="7" class="px-5 py-12 text-center">
                   <p role="alert" class="text-red-800">无法加载站点记录，请重试。</p>
                   <button
                     type="button"
@@ -215,7 +217,7 @@ onMounted(() => void loadPage(1))
                 </td>
               </tr>
               <tr v-else-if="!result?.rows.length">
-                <td colspan="6" class="px-5 py-16 text-center text-slate-600">
+                <td colspan="7" class="px-5 py-16 text-center text-slate-600">
                   {{ keyword ? '没有匹配的站点' : '暂无站点记录' }}
                 </td>
               </tr>
@@ -248,6 +250,14 @@ onMounted(() => void loadPage(1))
                     <time :datetime="station.createAt">{{
                       station.createAt.replace('T', ' ')
                     }}</time>
+                  </td>
+                  <td
+                    class="border-b border-slate-100 px-5 py-4 whitespace-nowrap text-slate-700 tabular-nums group-hover:bg-slate-50 sm:px-6"
+                  >
+                    <time v-if="station.scdUpdatedAt" :datetime="station.scdUpdatedAt">{{
+                      station.scdUpdatedAt.replace('T', ' ')
+                    }}</time>
+                    <span v-else>—</span>
                   </td>
                   <td
                     class="border-b border-slate-100 px-3 py-4 text-right whitespace-nowrap group-hover:bg-slate-50 sm:px-6"

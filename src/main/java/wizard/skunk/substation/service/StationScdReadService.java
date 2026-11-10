@@ -15,7 +15,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 public class StationScdReadService {
@@ -43,13 +47,47 @@ public class StationScdReadService {
 
 	public List<DataSetSummary> dataSets(String station, String device) {
 		// Earlier snapshots stored some generated IDs only as SQLite rowids.
-		return read(station, session -> session.createSelectionQuery("""
-				select ds.identity, ds.name, ds.description
-				from DataSet ds join Device d on fk(ds.device) = coalesce(d.id, column(d.rowid as Long))
-				where d.name = :device order by coalesce(ds.id, column(ds.rowid as Long))
-				""", DataSetSummary.class)
-				.setParameter("device", device)
-				.getResultList());
+		return read(station, session -> {
+			List<DataSetRow> dataSets = session.createSelectionQuery("""
+					select coalesce(ds.id, column(ds.rowid as Long)), ds.identity, ds.name, ds.description
+					from DataSet ds join Device d on fk(ds.device) = coalesce(d.id, column(d.rowid as Long))
+					where d.name = :device order by coalesce(ds.id, column(ds.rowid as Long))
+					""", DataSetRow.class).setParameter("device", device).getResultList();
+			if (dataSets.isEmpty()) {
+				return List.of();
+			}
+
+			Map<Long, List<ControlBlock>> controlsByDataSet = new HashMap<>();
+			for (LinkedControl control : controls(session, device)) {
+				controlsByDataSet.computeIfAbsent(control.dataSetId(), ignored -> new ArrayList<>())
+						.add(new ControlBlock(control.id(), control.type(), control.name(), control.reference()));
+			}
+			return dataSets.stream().map(dataSet -> new DataSetSummary(
+					dataSet.identity(), dataSet.name(), dataSet.description(),
+					controlsByDataSet.getOrDefault(dataSet.id(), List.of()))).toList();
+		});
+	}
+
+	private List<LinkedControl> controls(Session session, String device) {
+		return session.createSelectionQuery("""
+				select coalesce(ds.id, column(ds.rowid as Long)), coalesce(r.id, column(r.rowid as Long)),
+					case when r.buffered then 'BRCB' else 'URCB' end, r.name, r.reference
+				from ReportControl r
+				join DataSet ds on fk(r.dataSet) = coalesce(ds.id, column(ds.rowid as Long))
+				join Device d on fk(ds.device) = coalesce(d.id, column(d.rowid as Long))
+				where d.name = :device
+				union all
+				select coalesce(ds.id, column(ds.rowid as Long)), coalesce(g.id, column(g.rowid as Long)),
+					case when g.goose then 'GOOSE' else 'SV' end, g.name, g.reference
+				from GooseSvControl g
+				join DataSet ds on fk(g.dataSet) = coalesce(ds.id, column(ds.rowid as Long))
+				join Device d on fk(ds.device) = coalesce(d.id, column(d.rowid as Long))
+				where d.name = :device
+				""", LinkedControl.class).setParameter("device", device).getResultList().stream()
+				.sorted(Comparator.comparing(LinkedControl::type)
+						.thenComparing(LinkedControl::name, Comparator.nullsLast(Comparator.naturalOrder()))
+						.thenComparingLong(LinkedControl::id))
+				.toList();
 	}
 
 	public List<FcdaRow> fcda(String station, String device, String dataSet) {
@@ -74,11 +112,20 @@ public class StationScdReadService {
 			return List.of();
 		}
 
-		// Each query opens the published snapshot afresh, so re-imports are visible immediately.
+		// Read related rows in one transaction so concurrent imports cannot mix versions.
 		String url = SqliteJdbcUrlBuilder.fromPath(database.toString()) + "?mode=ro";
 		try (var connection = DriverManager.getConnection(url);
 			 Session session = sqliteSessions.withOptions().connection(connection).openSession()) {
-			return query.apply(session);
+			var transaction = session.beginTransaction();
+			try {
+				List<T> result = query.apply(session);
+				transaction.commit();
+				return result;
+			} finally {
+				if (transaction.isActive()) {
+					transaction.rollback();
+				}
+			}
 		} catch (SQLException exception) {
 			throw new IllegalStateException("无法读取站点的 SQLite 数据库", exception);
 		}
@@ -95,7 +142,13 @@ public class StationScdReadService {
 		}
 	}
 
-	public record DataSetSummary(String identity, String name, String description) {}
+	private record DataSetRow(long id, String identity, String name, String description) {}
+
+	private record LinkedControl(long dataSetId, long id, String type, String name, String reference) {}
+
+	public record DataSetSummary(String identity, String name, String description, List<ControlBlock> controls) {}
+
+	public record ControlBlock(long id, String type, String name, String reference) {}
 
 	public record FcdaRow(long id, int index, String reference, String description, String fc, String cdc) {}
 }

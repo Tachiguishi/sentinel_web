@@ -10,6 +10,13 @@ interface Target {
   station: string
   devices: string[]
   batch: boolean
+  description?: string | null
+}
+
+interface DeviceTarget {
+  name: string
+  description: string | null
+  category: number
 }
 
 const emit = defineEmits<{ saved: [target: Target, category: CategoryOption] }>()
@@ -43,12 +50,19 @@ async function loadOptions() {
   }
 }
 
-function open(station: string, devices: string | string[], category: number | '' = '') {
-  target.value =
-    typeof devices === 'string'
-      ? { station, devices: [devices], batch: false }
-      : { station, devices: [...devices], batch: true }
-  selection.value = category
+function open(station: string, devices: DeviceTarget | string[]) {
+  if (Array.isArray(devices)) {
+    target.value = { station, devices: [...devices], batch: true }
+    selection.value = ''
+  } else {
+    target.value = {
+      station,
+      devices: [devices.name],
+      batch: false,
+      description: devices.description,
+    }
+    selection.value = devices.category
+  }
   saveError.value = ''
   dialog.value?.showModal()
   if (options.value.length) validateSelection()
@@ -106,9 +120,14 @@ function preventCloseWhileSaving(event: Event) {
     <h2 id="edit-device-category-title" class="text-lg font-semibold">
       {{ target?.batch ? '批量修改装置类型' : '修改装置类型' }}
     </h2>
-    <p class="mt-1 text-sm break-words text-slate-600">
-      <template v-if="target?.batch">将 {{ target.devices.length }} 个装置设为同一类型。</template>
-      <template v-else>{{ target?.devices[0] }}</template>
+    <p v-if="target?.batch" class="mt-1 text-sm text-slate-600">
+      将 {{ target.devices.length }} 个装置设为同一类型。
+    </p>
+    <p v-else-if="target" class="mt-2 break-words">
+      <span class="font-semibold">
+        {{ target.description?.trim() || '未填写描述' }}
+      </span>
+      <span class="ml-2 text-sm text-slate-600">{{ target.devices[0] }}</span>
     </p>
     <form class="mt-5 space-y-4" @submit.prevent="save">
       <div v-if="loadFailed">

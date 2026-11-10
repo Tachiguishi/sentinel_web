@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import EditDeviceCategoryDialog from '../components/EditDeviceCategoryDialog.vue'
 
@@ -8,6 +8,7 @@ const props = defineProps<{ name: string }>()
 interface StationDetail {
   name: string
   description: string | null
+  scdUpdatedAt: string | null
 }
 
 interface DeviceSummary {
@@ -21,6 +22,14 @@ interface DataSetSummary {
   identity: string
   name: string
   description: string | null
+  controls: ControlBlock[]
+}
+
+interface ControlBlock {
+  id: number
+  type: string
+  name: string | null
+  reference: string | null
 }
 
 interface FcdaRow {
@@ -33,11 +42,19 @@ interface FcdaRow {
 }
 
 const station = ref<StationDetail | null>(null)
+const scdUpdateHint = computed(() => {
+  if (!station.value) return undefined
+  const updatedAt = station.value.scdUpdatedAt
+  return updatedAt ? `上次更新 SCD：${updatedAt.replace('T', ' ')}` : '尚未更新 SCD'
+})
 const detailError = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploading = ref(false)
 const uploadError = ref('')
-const deviceCount = ref<number | null>(null)
+const scdToast = ref<HTMLDivElement | null>(null)
+const scdToastMessage = ref('')
+const supportsPopover = typeof HTMLElement !== 'undefined' && 'showPopover' in HTMLElement.prototype
+let scdToastTimer: ReturnType<typeof setTimeout> | undefined
 const selectedDevice = ref<string | null>(null)
 const selectedDataSet = ref<string | null>(null)
 const deviceQuery = ref('')
@@ -167,6 +184,21 @@ function selectVisibleDevices(event: Event) {
   }
 }
 
+function dismissScdToast() {
+  clearTimeout(scdToastTimer)
+  scdToastMessage.value = ''
+  scdToast.value?.hidePopover?.()
+}
+
+function showScdToast(deviceCount: number) {
+  if (!scdToast.value) return
+  scdToastMessage.value = `SCD 已更新，共导入 ${deviceCount} 个装置。`
+  scdToast.value.showPopover?.()
+  scdToastTimer = setTimeout(dismissScdToast, 5000)
+}
+
+onBeforeUnmount(dismissScdToast)
+
 watch(
   () => props.name,
   async (name, _, onCleanup) => {
@@ -178,7 +210,7 @@ watch(
     selectedDevice.value = null
     selectedDataSet.value = null
     detailError.value = ''
-    deviceCount.value = null
+    dismissScdToast()
     uploadError.value = ''
     uploading.value = false
 
@@ -208,7 +240,7 @@ async function uploadScd(event: Event) {
   if (!file || !station.value || uploading.value) return
 
   const target = station.value
-  deviceCount.value = null
+  dismissScdToast()
   uploadError.value = ''
   if (file.size > 50 * 1024 * 1024) {
     uploadError.value = 'SCD 文件不能超过 50 MB。'
@@ -223,9 +255,10 @@ async function uploadScd(event: Event) {
     const response = await fetch('/api/stations/scd', { method: 'POST', body: form })
     if (station.value !== target) return
     if (response.ok) {
-      const result = (await response.json()) as { deviceCount: number }
+      const result = (await response.json()) as { deviceCount: number; scdUpdatedAt: string }
       if (station.value === target) {
-        deviceCount.value = result.deviceCount
+        showScdToast(result.deviceCount)
+        target.scdUpdatedAt = result.scdUpdatedAt
         exitBatchMode()
         selectedDevice.value = null
         selectedDataSet.value = null
@@ -279,6 +312,7 @@ async function uploadScd(event: Event) {
             <button
               type="button"
               :disabled="!station || uploading"
+              :title="scdUpdateHint"
               class="rounded-lg bg-teal-800 px-4 py-2 text-sm font-medium text-white hover:bg-teal-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 disabled:opacity-50"
               @click="fileInput?.click()"
             >
@@ -288,9 +322,6 @@ async function uploadScd(event: Event) {
           <p v-if="uploadError" role="alert" class="mt-4 text-sm text-red-800">{{ uploadError }}</p>
           <p v-else-if="uploading" role="status" class="mt-4 text-sm text-slate-600">
             正在上传并解析 SCD 文件…
-          </p>
-          <p v-else-if="deviceCount !== null" role="status" class="mt-4 text-sm text-teal-800">
-            SCD 已更新，共导入 {{ deviceCount }} 个装置。
           </p>
           <div class="mt-4" role="search" aria-label="筛选装置列表">
             <label for="device-query" class="mb-1 block text-sm font-medium text-slate-700">
@@ -438,7 +469,12 @@ async function uploadScd(event: Event) {
           </p>
           <template v-else>
             <div class="mt-1 flex flex-wrap items-center gap-2">
-              <p class="min-w-0 text-sm break-words text-slate-600">{{ selectedDevice }}</p>
+              <p class="min-w-0 break-words">
+                <span class="font-semibold">
+                  {{ currentDevice?.description?.trim() || '未填写描述' }}
+                </span>
+                <span class="ml-2 text-sm text-slate-600">{{ selectedDevice }}</span>
+              </p>
               <template v-if="station && currentDevice">
                 <span class="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700">
                   {{ currentDevice.categoryLabel }}
@@ -447,9 +483,7 @@ async function uploadScd(event: Event) {
                   type="button"
                   :disabled="uploading"
                   class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-teal-800 hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-teal-700 disabled:opacity-50"
-                  @click="
-                    categoryDialog?.open(station.name, currentDevice.name, currentDevice.category)
-                  "
+                  @click="categoryDialog?.open(station.name, currentDevice)"
                 >
                   修改类型
                 </button>
@@ -483,12 +517,31 @@ async function uploadScd(event: Event) {
                     <button
                       type="button"
                       :aria-pressed="selectedDataSet === dataSet.identity"
-                      class="w-full rounded-lg px-3 py-2.5 text-left text-sm hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-teal-700 aria-pressed:bg-teal-50 aria-pressed:text-teal-900"
+                      class="flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left text-sm hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-teal-700 aria-pressed:bg-teal-50 aria-pressed:text-teal-900"
                       @click="selectedDataSet = dataSet.identity"
                     >
-                      <span class="block font-semibold break-words">{{ dataSet.name }}</span>
-                      <span class="mt-1 block text-xs break-words text-slate-600">
-                        {{ dataSet.description || dataSet.identity }}
+                      <span class="min-w-0 flex-1">
+                        <span class="block font-semibold break-words">
+                          {{ dataSet.description?.trim() || '未填写描述' }}
+                        </span>
+                        <span class="mt-1 block text-xs break-words text-slate-600">
+                          {{ dataSet.name }}
+                        </span>
+                      </span>
+                      <span v-if="dataSet.controls?.length" class="w-[52%] min-w-0 space-y-1">
+                        <span
+                          v-for="control in dataSet.controls"
+                          :key="`${control.type}-${control.id}`"
+                          :title="control.reference ?? undefined"
+                          class="flex flex-col items-end gap-0.5 text-right text-xs text-slate-700"
+                        >
+                          <span class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 font-semibold">
+                            {{ control.type }}
+                          </span>
+                          <span class="min-w-0 break-words">
+                            {{ control.name || control.reference || '未命名控制块' }}
+                          </span>
+                        </span>
                       </span>
                     </button>
                   </li>
@@ -552,5 +605,24 @@ async function uploadScd(event: Event) {
         @saved="updateCategory"
       />
     </main>
+    <p role="status" class="sr-only">{{ scdToastMessage }}</p>
+    <div
+      ref="scdToast"
+      :popover="supportsPopover ? 'manual' : undefined"
+      :class="{ hidden: !supportsPopover && !scdToastMessage }"
+      class="fixed inset-auto right-4 bottom-4 left-4 z-30 m-0 w-auto rounded-xl border border-teal-200 bg-white px-4 py-3 text-teal-900 shadow-lg sm:left-auto sm:max-w-sm"
+    >
+      <div class="flex items-center gap-3">
+        <p aria-hidden="true" class="text-sm font-medium">{{ scdToastMessage }}</p>
+        <button
+          type="button"
+          aria-label="关闭 SCD 更新提示"
+          class="ml-auto grid size-8 shrink-0 place-items-center rounded text-lg leading-none text-teal-900 hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-teal-700"
+          @click="dismissScdToast"
+        >
+          ×
+        </button>
+      </div>
+    </div>
   </div>
 </template>

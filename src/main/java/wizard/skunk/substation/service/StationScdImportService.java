@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.LinkedHashSet;
@@ -61,7 +62,7 @@ public class StationScdImportService {
 		});
 	}
 
-	public synchronized int importScd(String stationName, InputStream upload) throws IOException {
+	public synchronized ImportResult importScd(String stationName, InputStream upload) throws IOException {
 		Files.createDirectories(directory);
 		Path scd = Files.createTempFile(directory, ".upload-", ".scd");
 		try {
@@ -82,7 +83,7 @@ public class StationScdImportService {
 				persist(database, parsed, monitor, false);
 			}
 
-			return parsed.devices().size();
+			return new ImportResult(parsed.devices().size(), LocalDateTime.now().withNano(0));
 		} finally {
 			Files.deleteIfExists(scd);
 		}
@@ -150,4 +151,6 @@ public class StationScdImportService {
 			throw new IllegalStateException(exception);
 		}
 	}
+
+	public record ImportResult(int deviceCount, LocalDateTime scdUpdatedAt) {}
 }

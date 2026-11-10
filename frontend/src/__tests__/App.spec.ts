@@ -34,6 +34,7 @@ describe('App', () => {
               ipAddress: null,
               instantNo: 3,
               createAt: '2026-11-10T10:00:00',
+              scdUpdatedAt: '2026-11-10T12:34:56',
             },
           ],
           page,
@@ -54,6 +55,7 @@ describe('App', () => {
     await flushPromises()
     expect(fetch).toHaveBeenLastCalledWith('/api/stations?page=1&size=20&keyword=East+%26+West')
     expect(wrapper.get('time').text()).toBe('2026-11-10 10:00:00')
+    expect(wrapper.get('time[datetime="2026-11-10T12:34:56"]').text()).toBe('2026-11-10 12:34:56')
 
     await wrapper.get('nav button:last-child').trigger('click')
     await flushPromises()

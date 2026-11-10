@@ -21,6 +21,13 @@ ALTER TABLE sentinel_station
   ADD COLUMN create_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
 ```
 
+如果已有 MySQL 表缺少 `scd_updated_at`，执行下面的迁移。已有导入记录从下一次成功更新 SCD 起记录时间。
+
+```sql
+ALTER TABLE sentinel_station
+  ADD COLUMN scd_updated_at TIMESTAMP NULL DEFAULT NULL;
+```
+
 在另一个终端进入 `frontend`，运行下面的命令，再打开 [站点列表](http://localhost:5173)。Vite 会把 `/api` 请求转发到 `127.0.0.1:31313`。
 
 ```sh

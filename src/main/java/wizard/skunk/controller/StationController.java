@@ -127,7 +127,8 @@ public class StationController {
 						station.getDescription(),
 						station.getIpAddress(),
 						station.getInstantNo(),
-						station.getCreateAt()))
+						station.getCreateAt(),
+						station.getScdUpdatedAt()))
 				.toList();
 		return new StationPage(rows, currentPage, size, total, totalPages);
 	}
@@ -145,5 +146,6 @@ public class StationController {
 
 	public record StationSettings(String name, String ipAddress, Integer instantNo) {}
 
-	public record Station(String name, String description, String ipAddress, Integer instantNo, LocalDateTime createAt) {}
+	public record Station(String name, String description, String ipAddress, Integer instantNo,
+						  LocalDateTime createAt, LocalDateTime scdUpdatedAt) {}
 }

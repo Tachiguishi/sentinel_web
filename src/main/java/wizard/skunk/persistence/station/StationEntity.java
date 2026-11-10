@@ -32,6 +32,9 @@ public class StationEntity implements Persistable<String> {
 	@Column(name = "create_at", nullable = false, insertable = false, updatable = false)
 	private LocalDateTime createAt;
 
+	@Column(name = "scd_updated_at", insertable = false, updatable = false)
+	private LocalDateTime scdUpdatedAt;
+
 	@Transient
 	private boolean newStation = true;
 
