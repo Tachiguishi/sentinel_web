@@ -9,6 +9,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 import wizard.skunk.common.StandardMonitor;
 import wizard.skunk.datasource.SqliteJdbcUrlBuilder;
 import wizard.skunk.parser.domain.IED;
+import wizard.skunk.persistence.substation.domain.Device;
+import wizard.skunk.persistence.substation.domain.DeviceCategory;
+import wizard.skunk.persistence.substation.repository.DeviceRepository;
 
 import javax.sql.DataSource;
 import java.io.IOException;
@@ -21,13 +24,41 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashSet;
 import java.util.HexFormat;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class StationScdImportService {
+	private static final int CATEGORY_UPDATE_BATCH_SIZE = 500;
 	private final Path directory;
 
 	public StationScdImportService(@Value("${sentinel.scd.directory:data/scd}") Path directory) {
 		this.directory = directory.toAbsolutePath().normalize();
+	}
+
+	public synchronized void updateDeviceCategories(String stationName, List<String> deviceNames, DeviceCategory category) {
+		Path database = databasePath(stationName);
+		if (Files.notExists(database)) {
+			throw new NoSuchElementException("装置不存在");
+		}
+		List<String> names = List.copyOf(new LinkedHashSet<>(deviceNames));
+		write(database, false, context -> {
+			DeviceRepository repository = context.getBean(DeviceRepository.class);
+			for (int start = 0; start < names.size(); start += CATEGORY_UPDATE_BATCH_SIZE) {
+				List<String> batch = names.subList(start, Math.min(names.size(), start + CATEGORY_UPDATE_BATCH_SIZE));
+				List<Device> devices = repository.findByNameIn(batch);
+				Set<String> found = new HashSet<>();
+				for (Device device : devices) {
+					found.add(device.getName());
+				}
+				if (devices.size() != batch.size() || !found.containsAll(batch)) {
+					throw new NoSuchElementException("有装置不存在，请刷新列表");
+				}
+				devices.forEach(device -> device.overrideCategory(category));
+			}
+		});
 	}
 
 	public synchronized int importScd(String stationName, InputStream upload) throws IOException {
@@ -78,6 +109,11 @@ public class StationScdImportService {
 	}
 
 	private void persist(Path database, SclService.ParsedScd parsed, StandardMonitor monitor, boolean createSchema) {
+		write(database, createSchema, context ->
+				context.getBean(ScdService.class).persistSCD(parsed.version(), parsed.devices(), monitor));
+	}
+
+	private void write(Path database, boolean createSchema, Consumer<AnnotationConfigApplicationContext> action) {
 		// A separate context keeps the copied repositories and transaction manager away from MySQL.
 		try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
 			context.registerBean(DataSource.class, () -> {
@@ -93,9 +129,15 @@ public class StationScdImportService {
 					context.getBean(JpaTransactionManager.class));
 			transaction.executeWithoutResult(status -> {
 				if (!createSchema) {
-					LegacyScdSqliteIds.repair(new JdbcTemplate(context.getBean(DataSource.class)));
+					JdbcTemplate jdbc = new JdbcTemplate(context.getBean(DataSource.class));
+					LegacyScdSqliteIds.repair(jdbc);
+					boolean hasCategoryOverride = jdbc.query("PRAGMA table_info(device)",
+							(rs, row) -> rs.getString("name")).contains("category_overridden");
+					if (!hasCategoryOverride) {
+						jdbc.execute("ALTER TABLE device ADD COLUMN category_overridden BOOLEAN");
+					}
 				}
-				context.getBean(ScdService.class).persistSCD(parsed.version(), parsed.devices(), monitor);
+				action.accept(context);
 			});
 		}
 	}

@@ -27,7 +27,7 @@ import java.util.Map;
 @Configuration(proxyBeanMethods = false)
 @EnableJpaRepositories(basePackageClasses = {DeviceRepository.class, SCLFileRepository.class})
 @EnableTransactionManagement
-@Import({ScdService.class, DeviceService.class, DataSetService.class, DictionaryForCDCService.class,
+@Import({ScdService.class, CategoryIdentifier.class, DeviceService.class, DataSetService.class, DictionaryForCDCService.class,
 		FCDAService.class, LogicalLinkService.class, SubstationService.class, SCLFileService.class})
 class ScdSqliteConfiguration {
 	static final String DIALECT = ScdSqliteDialect.class.getName();

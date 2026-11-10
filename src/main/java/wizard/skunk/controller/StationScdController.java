@@ -4,6 +4,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -11,12 +13,15 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import wizard.skunk.persistence.station.StationEntity;
 import wizard.skunk.persistence.station.StationRepository;
+import wizard.skunk.persistence.substation.domain.DeviceCategory;
 import wizard.skunk.substation.service.StationScdImportService;
 import wizard.skunk.substation.service.StationScdReadService;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @RestController
 @RequestMapping("/api/stations")
@@ -40,6 +45,37 @@ public class StationScdController {
 	@GetMapping("/scd/devices")
 	public List<StationScdReadService.DeviceSummary> devices(@RequestParam String name) {
 		return scd.devices(findStation(name).getName());
+	}
+
+	@GetMapping("/scd/device-categories")
+	public List<CategoryOption> deviceCategories() {
+		return Arrays.stream(DeviceCategory.values()).map(CategoryOption::from).toList();
+	}
+
+	@PutMapping("/scd/device-category")
+	public CategoryOption updateDeviceCategory(@RequestParam String name, @RequestParam String device,
+											  @RequestParam int category) {
+		return updateDeviceCategories(name, category, List.of(device));
+	}
+
+	@PutMapping(value = "/scd/device-categories", consumes = MediaType.APPLICATION_JSON_VALUE)
+	public CategoryOption updateDeviceCategories(@RequestParam String name, @RequestParam int category,
+												 @RequestBody List<String> devices) {
+		if (devices.isEmpty() || devices.stream().anyMatch(device -> device == null || device.isBlank())) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请选择有效的装置");
+		}
+
+		DeviceCategory selection = DeviceCategory.fromValue(category);
+		if (selection == null) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "无效的装置类型");
+		}
+		String stationName = findStation(name).getName();
+		try {
+			imports.updateDeviceCategories(stationName, devices, selection);
+		} catch (NoSuchElementException exception) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, exception.getMessage(), exception);
+		}
+		return CategoryOption.from(selection);
 	}
 
 	@GetMapping("/scd/datasets")
@@ -75,4 +111,10 @@ public class StationScdController {
 	public record StationDetail(String name, String description) {}
 
 	public record ImportResult(int deviceCount) {}
+
+	public record CategoryOption(int value, String label) {
+		static CategoryOption from(DeviceCategory category) {
+			return new CategoryOption(category.value, category.description);
+		}
+	}
 }

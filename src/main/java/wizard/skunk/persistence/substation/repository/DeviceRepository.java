@@ -9,9 +9,13 @@ import wizard.skunk.persistence.substation.domain.Bay;
 import wizard.skunk.persistence.substation.domain.Cabinet;
 import wizard.skunk.persistence.substation.domain.Device;
 
+import java.util.Collection;
+import java.util.List;
+
 @Repository
 public interface DeviceRepository extends CrudRepository<Device, Long> {
 	Device findByName(String name);
+	List<Device> findByNameIn(Collection<String> names);
 	Iterable<Device> findByCategory(int category);
 	Iterable<Device> findByIgnored(boolean ignored);
 	Iterable<Device> findByBay(Bay bay);

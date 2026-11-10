@@ -9,6 +9,7 @@ import org.springframework.core.io.ResourceLoader;
 import org.springframework.orm.jpa.persistenceunit.PersistenceManagedTypesScanner;
 import wizard.skunk.datasource.SqliteJdbcUrlBuilder;
 import wizard.skunk.persistence.substation.domain.Device;
+import wizard.skunk.persistence.substation.domain.DeviceCategory;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -35,7 +36,7 @@ public class StationScdReadService {
 
 	public List<DeviceSummary> devices(String station) {
 		return read(station, session -> session.createSelectionQuery("""
-				select d.name, d.description
+				select d.name, d.description, d.category
 				from Device d order by d.name
 				""", DeviceSummary.class).getResultList());
 	}
@@ -88,7 +89,11 @@ public class StationScdReadService {
 		sqliteSessions.close();
 	}
 
-	public record DeviceSummary(String name, String description) {}
+	public record DeviceSummary(String name, String description, int category, String categoryLabel) {
+		public DeviceSummary(String name, String description, int category) {
+			this(name, description, category, DeviceCategory.labelOf(category));
+		}
+	}
 
 	public record DataSetSummary(String identity, String name, String description) {}
 

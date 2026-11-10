@@ -56,7 +56,7 @@ public class ScdService {
 		this.logicalLinkService = logicalLinkService;
 	}
 
-	@Autowired(required = false)
+	@Autowired
 	public void setCategoryIdentifier(ICategoryIdentifier categoryIdentifier){
 		this.categoryIdentifier = categoryIdentifier;
 	}
@@ -423,7 +423,7 @@ public class ScdService {
 		device.setApTitle(ied.getApTitle());
 		device.setAeQualifier(ied.getAeQualifier());
 
-		if (categoryIdentifier != null) {
+		if (categoryIdentifier != null && !Boolean.TRUE.equals(device.getCategoryOverridden())) {
 			categoryIdentifier.deduceDeviceCategory(device);
 		}
 

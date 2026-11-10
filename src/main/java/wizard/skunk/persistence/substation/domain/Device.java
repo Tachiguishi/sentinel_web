@@ -19,6 +19,7 @@ public class Device {
 	private String version;
 
 	private int category;
+	private Boolean categoryOverridden;
 
 	@Column(length = 16)
 	private String ipAddressA;
@@ -47,6 +48,11 @@ public class Device {
 	@ManyToOne
 	private Cabinet cabinet;
 	private String cabinetUnit;
+
+	public void overrideCategory(DeviceCategory category) {
+		this.category = category.value;
+		this.categoryOverridden = true;
+	}
 
 	@Override
 	public String toString() {

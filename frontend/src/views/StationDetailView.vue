@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
+import EditDeviceCategoryDialog from '../components/EditDeviceCategoryDialog.vue'
 
 const props = defineProps<{ name: string }>()
 
@@ -12,6 +13,8 @@ interface StationDetail {
 interface DeviceSummary {
   name: string
   description: string | null
+  category: number
+  categoryLabel: string
 }
 
 interface DataSetSummary {
@@ -37,6 +40,10 @@ const uploadError = ref('')
 const deviceCount = ref<number | null>(null)
 const selectedDevice = ref<string | null>(null)
 const selectedDataSet = ref<string | null>(null)
+const deviceQuery = ref('')
+const categoryDialog = ref<InstanceType<typeof EditDeviceCategoryDialog> | null>(null)
+const batchMode = ref(false)
+const batchSelection = ref(new Set<string>())
 
 function useScdRows<T>(path: string, params: () => Record<string, string> | null) {
   const rows = ref<T[]>([])
@@ -81,6 +88,30 @@ const {
 } = useScdRows<DeviceSummary>('devices', () =>
   station.value ? { name: station.value.name } : null,
 )
+const currentDevice = computed(() =>
+  devices.value.find(({ name }) => name === selectedDevice.value),
+)
+const deviceNameOrder = new Intl.Collator('zh-CN', { numeric: true })
+
+function categoryOrder(device: DeviceSummary) {
+  return device.categoryLabel === '未知' ? 0 : device.category
+}
+
+const visibleDevices = computed(() => {
+  const keyword = deviceQuery.value.trim().toLowerCase()
+  const matching = devices.value.filter(
+    ({ name, description }) =>
+      !keyword ||
+      name.toLowerCase().includes(keyword) ||
+      description?.toLowerCase().includes(keyword),
+  )
+  return matching.sort(
+    (a, b) => categoryOrder(a) - categoryOrder(b) || deviceNameOrder.compare(a.name, b.name),
+  )
+})
+const visibleSelectionCount = computed(
+  () => visibleDevices.value.filter(({ name }) => batchSelection.value.has(name)).length,
+)
 const {
   rows: dataSets,
   loading: dataSetsLoading,
@@ -108,12 +139,42 @@ function selectDevice(name: string) {
   selectedDevice.value = name
 }
 
+function updateCategory(
+  target: { station: string; devices: string[]; batch: boolean },
+  category: { value: number; label: string },
+) {
+  if (station.value?.name !== target.station) return
+  const names = new Set(target.devices)
+  for (const device of devices.value) {
+    if (names.has(device.name)) {
+      device.category = category.value
+      device.categoryLabel = category.label
+    }
+  }
+  if (target.batch) exitBatchMode()
+}
+
+function exitBatchMode() {
+  batchMode.value = false
+  batchSelection.value.clear()
+}
+
+function selectVisibleDevices(event: Event) {
+  const checked = (event.target as HTMLInputElement).checked
+  for (const { name } of visibleDevices.value) {
+    if (checked) batchSelection.value.add(name)
+    else batchSelection.value.delete(name)
+  }
+}
+
 watch(
   () => props.name,
   async (name, _, onCleanup) => {
     const request = new AbortController()
     onCleanup(() => request.abort())
     station.value = null
+    deviceQuery.value = ''
+    exitBatchMode()
     selectedDevice.value = null
     selectedDataSet.value = null
     detailError.value = ''
@@ -165,6 +226,7 @@ async function uploadScd(event: Event) {
       const result = (await response.json()) as { deviceCount: number }
       if (station.value === target) {
         deviceCount.value = result.deviceCount
+        exitBatchMode()
         selectedDevice.value = null
         selectedDataSet.value = null
         refreshDevices()
@@ -230,6 +292,72 @@ async function uploadScd(event: Event) {
           <p v-else-if="deviceCount !== null" role="status" class="mt-4 text-sm text-teal-800">
             SCD 已更新，共导入 {{ deviceCount }} 个装置。
           </p>
+          <div class="mt-4" role="search" aria-label="筛选装置列表">
+            <label for="device-query" class="mb-1 block text-sm font-medium text-slate-700">
+              搜索装置
+            </label>
+            <input
+              id="device-query"
+              v-model="deviceQuery"
+              type="search"
+              placeholder="输入装置名或描述"
+              class="min-h-12 w-full rounded-lg border border-slate-400 px-3 focus-visible:outline-2 focus-visible:outline-teal-700"
+            />
+          </div>
+          <button
+            v-if="!batchMode"
+            type="button"
+            :disabled="uploading || !devices.length"
+            class="mt-3 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-teal-800 hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-teal-700 disabled:opacity-50"
+            @click="batchMode = true"
+          >
+            批量修改类型
+          </button>
+          <div
+            v-else
+            class="mt-3 space-y-2 rounded-lg border border-slate-200 bg-slate-50 px-3 pb-3"
+          >
+            <label class="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                :checked="
+                  visibleDevices.length > 0 && visibleSelectionCount === visibleDevices.length
+                "
+                :indeterminate="
+                  visibleSelectionCount > 0 && visibleSelectionCount < visibleDevices.length
+                "
+                :disabled="!visibleDevices.length"
+                class="size-4 accent-teal-800 focus-visible:outline-2 focus-visible:outline-teal-700 disabled:opacity-50"
+                @change="selectVisibleDevices"
+              />
+              全选当前筛选结果
+            </label>
+            <p class="text-sm text-slate-600" role="status">
+              已选 {{ batchSelection.size }} 个装置
+              <span v-if="batchSelection.size > visibleSelectionCount">
+                （{{ batchSelection.size - visibleSelectionCount }} 个不在当前结果中）
+              </span>
+            </p>
+            <div class="flex flex-wrap gap-2">
+              <button
+                type="button"
+                :disabled="
+                  !station || uploading || devicesLoading || devicesError || !batchSelection.size
+                "
+                class="rounded-lg bg-teal-800 px-3 py-2 text-sm font-medium text-white hover:bg-teal-900 focus-visible:outline-2 focus-visible:outline-teal-700 disabled:opacity-50"
+                @click="station && categoryDialog?.open(station.name, [...batchSelection])"
+              >
+                修改所选类型
+              </button>
+              <button
+                type="button"
+                class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-teal-700"
+                @click="exitBatchMode"
+              >
+                取消批量选择
+              </button>
+            </div>
+          </div>
           <div v-if="devicesError" class="mt-5 text-sm">
             <p role="alert" class="text-red-800">无法读取装置列表。</p>
             <button type="button" class="mt-2 text-teal-800 underline" @click="refreshDevices">
@@ -245,20 +373,52 @@ async function uploadScd(event: Event) {
           >
             {{ station ? '暂无装置，请先更新 SCD。' : '暂无装置' }}
           </p>
+          <p v-else-if="!visibleDevices.length" role="status" class="mt-4 text-sm text-slate-600">
+            没有匹配的装置。
+          </p>
           <ul v-else class="mt-4 max-h-[32rem] space-y-1 overflow-auto p-1" aria-label="装置">
-            <li v-for="device in devices" :key="device.name">
+            <li v-for="device in visibleDevices" :key="device.name" class="flex items-center">
+              <label
+                v-if="batchMode"
+                class="flex min-h-11 w-11 shrink-0 cursor-pointer items-center justify-center"
+              >
+                <input
+                  v-model="batchSelection"
+                  type="checkbox"
+                  :value="device.name"
+                  class="size-4 accent-teal-800 focus-visible:outline-2 focus-visible:outline-teal-700"
+                />
+                <span class="sr-only">选择 {{ device.name }}</span>
+              </label>
               <button
                 type="button"
                 :aria-pressed="selectedDevice === device.name"
-                class="w-full rounded-lg px-3 py-2.5 text-left text-sm hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-teal-700 aria-pressed:bg-teal-50 aria-pressed:text-teal-900"
+                class="min-w-0 flex-1 rounded-lg px-3 py-2.5 text-left text-sm focus-visible:outline-2 focus-visible:outline-teal-700 aria-pressed:bg-teal-50 aria-pressed:text-teal-900"
+                :class="
+                  device.categoryLabel === '未知'
+                    ? 'bg-amber-50 hover:bg-amber-100'
+                    : 'hover:bg-slate-50'
+                "
                 @click="selectDevice(device.name)"
               >
-                <span class="block font-semibold break-words">{{ device.name }}</span>
-                <span
-                  v-if="device.description"
-                  class="mt-1 block text-xs break-words text-slate-600"
-                >
-                  {{ device.description }}
+                <span class="block font-semibold break-words">
+                  {{ device.description?.trim() || '未填写描述' }}
+                </span>
+                <span class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span class="min-w-0 text-xs break-words text-slate-600">
+                    {{ device.name }}
+                  </span>
+                  <span
+                    :title="`分类代码：${device.category}`"
+                    class="rounded px-1.5 py-0.5 text-xs"
+                    :class="
+                      device.categoryLabel === '未知'
+                        ? 'bg-amber-100 font-semibold text-amber-950 ring-1 ring-amber-300 ring-inset'
+                        : 'bg-slate-100 text-slate-700'
+                    "
+                  >
+                    {{ device.categoryLabel }}
+                  </span>
                 </span>
               </button>
             </li>
@@ -277,7 +437,24 @@ async function uploadScd(event: Event) {
             请选择装置查看数据集。
           </p>
           <template v-else>
-            <p class="mt-1 text-sm break-words text-slate-600">{{ selectedDevice }}</p>
+            <div class="mt-1 flex flex-wrap items-center gap-2">
+              <p class="min-w-0 text-sm break-words text-slate-600">{{ selectedDevice }}</p>
+              <template v-if="station && currentDevice">
+                <span class="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700">
+                  {{ currentDevice.categoryLabel }}
+                </span>
+                <button
+                  type="button"
+                  :disabled="uploading"
+                  class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-teal-800 hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-teal-700 disabled:opacity-50"
+                  @click="
+                    categoryDialog?.open(station.name, currentDevice.name, currentDevice.category)
+                  "
+                >
+                  修改类型
+                </button>
+              </template>
+            </div>
             <div class="mt-4 grid min-w-0 gap-5 md:grid-cols-[minmax(10rem,1fr)_minmax(0,3fr)]">
               <section aria-labelledby="dataset-list" class="min-w-0">
                 <h3 id="dataset-list" class="text-sm font-semibold">数据集列表</h3>
@@ -368,6 +545,12 @@ async function uploadScd(event: Event) {
           </template>
         </section>
       </div>
+      <EditDeviceCategoryDialog
+        v-if="station"
+        :key="station.name"
+        ref="categoryDialog"
+        @saved="updateCategory"
+      />
     </main>
   </div>
 </template>
