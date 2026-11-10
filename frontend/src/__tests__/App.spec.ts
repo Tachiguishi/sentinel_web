@@ -47,9 +47,10 @@ describe('App', () => {
 
     const wrapper = mount(App)
     await flushPromises()
-    const input = wrapper.get<HTMLInputElement>('input[type=search]')
+    const search = wrapper.get('form[role=search]')
+    const input = search.get<HTMLInputElement>('input[type=search]')
     await input.setValue(' East & West ')
-    await wrapper.get('form').trigger('submit')
+    await search.trigger('submit')
     await flushPromises()
     expect(fetch).toHaveBeenLastCalledWith('/api/stations?page=1&size=20&keyword=East+%26+West')
     expect(wrapper.get('time').text()).toBe('2026-11-10 10:00:00')
@@ -58,7 +59,7 @@ describe('App', () => {
     await flushPromises()
     expect(fetch).toHaveBeenLastCalledWith('/api/stations?page=2&size=20&keyword=East+%26+West')
 
-    await wrapper.get('form button[type=button]').trigger('click')
+    await search.get('button[type=button]').trigger('click')
     await flushPromises()
     expect(input.element.value).toBe('')
     expect(fetch).toHaveBeenLastCalledWith('/api/stations?page=1&size=20')

@@ -54,7 +54,7 @@ public class SclService {
 		long stop2 = System.currentTimeMillis();
 		log.info("Parse SCD cost: " + (stop2 - stop1) + "ms");
 
-		scdService.persistSCD(parser.getScdVersion(), iedList, monitor);
+		scdService.persistSCD(parser.getScdVersion(), iedList, monitor
 		stop1 = System.currentTimeMillis();
 		log.info("Persist SCD cost: " + (stop1 - stop2) + "ms");
 	}

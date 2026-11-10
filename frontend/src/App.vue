@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import AddStationDialog from './components/AddStationDialog.vue'
+import EditStationDialog from './components/EditStationDialog.vue'
 
 interface Station {
   name: string
@@ -18,6 +20,7 @@ interface StationPage {
 }
 
 const result = ref<StationPage | null>(null)
+const editDialog = ref<InstanceType<typeof EditStationDialog> | null>(null)
 const pageSize = ref(20)
 const searchInput = ref('')
 const keyword = ref('')
@@ -55,6 +58,18 @@ function applySearch() {
 function clearSearch() {
   searchInput.value = ''
   applySearch()
+}
+
+function refreshAfterAdd() {
+  void loadPage(1)
+}
+
+function updateEditedStation(settings: Pick<Station, 'name' | 'ipAddress' | 'instantNo'>) {
+  const station = result.value?.rows.find(({ name }) => name === settings.name)
+  if (station) {
+    station.ipAddress = settings.ipAddress
+    station.instantNo = settings.instantNo
+  }
 }
 
 function changePageSize(event: Event) {
@@ -103,60 +118,58 @@ onMounted(() => void loadPage(1))
         class="mt-8 rounded-2xl border border-slate-200 bg-white shadow-sm"
       >
         <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-5 sm:px-6">
-          <div>
-            <h2 id="directory-title" class="font-semibold">站点记录</h2>
-            <p class="mt-1 text-xs text-slate-600">按创建时间从新到旧排序</p>
-          </div>
-          <label class="flex items-center gap-2 text-sm text-slate-700">
-            每页
-            <select
-              :value="pageSize"
+          <form
+            role="search"
+            class="flex flex-wrap items-end gap-2 px-5 pb-5 sm:px-6"
+            @submit.prevent="applySearch"
+          >
+            <div class="min-w-40 flex-1 sm:max-w-sm">
+              <label for="station-keyword" class="mb-1 block text-sm font-medium text-slate-700">
+                站名或描述
+              </label>
+              <input
+                id="station-keyword"
+                v-model="searchInput"
+                name="keyword"
+                type="search"
+                enterkeyhint="search"
+                placeholder="输入关键词"
+                class="min-h-12 w-full rounded-lg border border-slate-400 px-3 focus-visible:outline-2 focus-visible:outline-teal-700"
+              />
+            </div>
+            <button
+              type="submit"
               :disabled="loading"
-              class="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 tabular-nums focus-visible:outline-2 focus-visible:outline-teal-700 disabled:opacity-50"
-              @change="changePageSize"
+              class="min-h-12 rounded-lg bg-teal-800 px-4 text-sm font-medium text-white hover:bg-teal-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 disabled:opacity-50"
             >
-              <option :value="10">10 条</option>
-              <option :value="20">20 条</option>
-              <option :value="50">50 条</option>
-            </select>
-          </label>
-        </div>
-
-        <form
-          role="search"
-          class="flex flex-wrap items-end gap-2 px-5 pb-5 sm:px-6"
-          @submit.prevent="applySearch"
-        >
-          <div class="min-w-40 flex-1 sm:max-w-sm">
-            <label for="station-keyword" class="mb-1 block text-sm font-medium text-slate-700">
-              站名或描述
+              搜索
+            </button>
+            <button
+              type="button"
+              :disabled="loading || (!keyword && !searchInput)"
+              class="min-h-12 rounded-lg border border-slate-300 px-4 text-sm font-medium hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-teal-700 disabled:opacity-50"
+              @click="clearSearch"
+            >
+              清除
+            </button>
+          </form>
+          <div class="flex flex-wrap items-center gap-3">
+            <AddStationDialog :disabled="loading" @added="refreshAfterAdd" />
+            <label class="flex items-center gap-2 text-sm text-slate-700">
+              每页
+              <select
+                :value="pageSize"
+                :disabled="loading"
+                class="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 tabular-nums focus-visible:outline-2 focus-visible:outline-teal-700 disabled:opacity-50"
+                @change="changePageSize"
+              >
+                <option :value="10">10 条</option>
+                <option :value="20">20 条</option>
+                <option :value="50">50 条</option>
+              </select>
             </label>
-            <input
-              id="station-keyword"
-              v-model="searchInput"
-              name="keyword"
-              type="search"
-              enterkeyhint="search"
-              placeholder="输入关键词"
-              class="min-h-12 w-full rounded-lg border border-slate-400 px-3 focus-visible:outline-2 focus-visible:outline-teal-700"
-            />
           </div>
-          <button
-            type="submit"
-            :disabled="loading"
-            class="min-h-12 rounded-lg bg-teal-800 px-4 text-sm font-medium text-white hover:bg-teal-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 disabled:opacity-50"
-          >
-            搜索
-          </button>
-          <button
-            type="button"
-            :disabled="loading || (!keyword && !searchInput)"
-            class="min-h-12 rounded-lg border border-slate-300 px-4 text-sm font-medium hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-teal-700 disabled:opacity-50"
-            @click="clearSearch"
-          >
-            清除
-          </button>
-        </form>
+        </div>
 
         <div
           role="region"
@@ -167,8 +180,11 @@ onMounted(() => void loadPage(1))
         >
           <table
             class="w-full border-separate border-spacing-0 text-left text-sm"
-            :class="{ 'min-w-[44rem]': !loading && !error && result?.rows.length }"
+            :class="{ 'min-w-[50rem]': !loading && !error && result?.rows.length }"
           >
+            <caption id="directory-title" class="sr-only">
+              站点记录
+            </caption>
             <thead class="sticky top-0 z-10 bg-[#edf3f1] text-slate-700">
               <tr>
                 <th scope="col" class="sticky left-0 bg-[#edf3f1] px-3 py-3 sm:px-6">站点名</th>
@@ -178,14 +194,15 @@ onMounted(() => void loadPage(1))
                 <th scope="col" aria-sort="descending" class="px-3 py-3 whitespace-nowrap sm:px-6">
                   创建时间
                 </th>
+                <th scope="col" class="px-3 py-3 text-right whitespace-nowrap sm:px-6">操作</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="loading">
-                <td colspan="5" class="px-5 py-16 text-center text-slate-600">正在加载站点记录…</td>
+                <td colspan="6" class="px-5 py-16 text-center text-slate-600">正在加载站点记录…</td>
               </tr>
               <tr v-else-if="error">
-                <td colspan="5" class="px-5 py-12 text-center">
+                <td colspan="6" class="px-5 py-12 text-center">
                   <p role="alert" class="text-red-800">无法加载站点记录，请重试。</p>
                   <button
                     type="button"
@@ -197,7 +214,7 @@ onMounted(() => void loadPage(1))
                 </td>
               </tr>
               <tr v-else-if="!result?.rows.length">
-                <td colspan="5" class="px-5 py-16 text-center text-slate-600">
+                <td colspan="6" class="px-5 py-16 text-center text-slate-600">
                   {{ keyword ? '没有匹配的站点' : '暂无站点记录' }}
                 </td>
               </tr>
@@ -230,6 +247,18 @@ onMounted(() => void loadPage(1))
                     <time :datetime="station.createAt">{{
                       station.createAt.replace('T', ' ')
                     }}</time>
+                  </td>
+                  <td
+                    class="border-b border-slate-100 px-3 py-4 text-right group-hover:bg-slate-50 sm:px-6"
+                  >
+                    <button
+                      type="button"
+                      :aria-label="`编辑 ${station.name}`"
+                      class="rounded-lg border border-slate-300 px-3 py-2 font-medium whitespace-nowrap text-teal-800 hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-teal-700"
+                      @click="editDialog?.open(station)"
+                    >
+                      编辑
+                    </button>
                   </td>
                 </tr>
               </template>
@@ -269,6 +298,7 @@ onMounted(() => void loadPage(1))
           </nav>
         </div>
       </section>
+      <EditStationDialog ref="editDialog" @saved="updateEditedStation" />
     </main>
   </div>
 </template>
