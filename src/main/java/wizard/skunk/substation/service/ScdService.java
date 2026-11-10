@@ -56,7 +56,7 @@ public class ScdService {
 		this.logicalLinkService = logicalLinkService;
 	}
 
-	@Autowired
+	@Autowired(required = false)
 	public void setCategoryIdentifier(ICategoryIdentifier categoryIdentifier){
 		this.categoryIdentifier = categoryIdentifier;
 	}
@@ -334,7 +334,9 @@ public class ScdService {
 			existGooseSvControls.remove(gooseSvControl);
 		}
 
-		categoryIdentifier.deduceFCDACategory(dataItems);
+		if (categoryIdentifier != null) {
+			categoryIdentifier.deduceFCDACategory(dataItems);
+		}
 
 		dataSetService.saveAll(existDataSetList);
 		dataSetService.save(dataItems);
@@ -410,7 +412,9 @@ public class ScdService {
 		device.setApTitle(ied.getApTitle());
 		device.setAeQualifier(ied.getAeQualifier());
 
-		categoryIdentifier.deduceDeviceCategory(device);
+		if (categoryIdentifier != null) {
+			categoryIdentifier.deduceDeviceCategory(device);
+		}
 
 		deviceService.save(device);
 

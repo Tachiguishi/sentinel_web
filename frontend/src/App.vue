@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import AddStationDialog from './components/AddStationDialog.vue'
 import EditStationDialog from './components/EditStationDialog.vue'
 
@@ -249,7 +250,7 @@ onMounted(() => void loadPage(1))
                     }}</time>
                   </td>
                   <td
-                    class="border-b border-slate-100 px-3 py-4 text-right group-hover:bg-slate-50 sm:px-6"
+                    class="border-b border-slate-100 px-3 py-4 text-right whitespace-nowrap group-hover:bg-slate-50 sm:px-6"
                   >
                     <button
                       type="button"
@@ -259,6 +260,13 @@ onMounted(() => void loadPage(1))
                     >
                       编辑
                     </button>
+                    <RouterLink
+                      :to="{ name: 'station-detail', params: { name: station.name } }"
+                      :aria-label="`详情 ${station.name}`"
+                      class="ml-2 inline-block rounded-lg border border-slate-300 px-3 py-2 font-medium text-teal-800 hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-teal-700"
+                    >
+                      详情
+                    </RouterLink>
                   </td>
                 </tr>
               </template>

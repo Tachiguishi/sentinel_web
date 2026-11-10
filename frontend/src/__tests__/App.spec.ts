@@ -12,7 +12,7 @@ describe('App', () => {
     })
     vi.stubGlobal('fetch', fetch)
 
-    const wrapper = mount(App)
+    const wrapper = mount(App, { global: { stubs: { RouterLink: true } } })
     await flushPromises()
 
     expect(fetch).toHaveBeenCalledWith('/api/stations?page=1&size=20')
@@ -45,7 +45,7 @@ describe('App', () => {
     })
     vi.stubGlobal('fetch', fetch)
 
-    const wrapper = mount(App)
+    const wrapper = mount(App, { global: { stubs: { RouterLink: true } } })
     await flushPromises()
     const search = wrapper.get('form[role=search]')
     const input = search.get<HTMLInputElement>('input[type=search]')

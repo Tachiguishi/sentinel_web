@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: sentinel
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 51MB
   datasource:
     url: ${SENTINEL_DB_URL:jdbc:mysql://localhost:3306/ora9a}
     username: ${SENTINEL_DB_USER:rs5000}
@@ -12,3 +16,7 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: none
+
+
+sentinel:
+  directory: data

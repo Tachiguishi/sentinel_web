@@ -21,12 +21,16 @@ ALTER TABLE sentinel_station
   ADD COLUMN create_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
 ```
 
-在另一个终端进入 `frontend`，运行下面的命令，再打开 [站点列表](http://localhost:5173)。Vite 会把 `/api` 请求转发到 `127.0.0.1:8080`。
+在另一个终端进入 `frontend`，运行下面的命令，再打开 [站点列表](http://localhost:5173)。Vite 会把 `/api` 请求转发到 `127.0.0.1:31313`。
 
 ```sh
 npm ci
 npm run dev
 ```
+
+## 更新站点 SCD
+
+从站点列表进入「详情」，点击「更新SCD」并选择不超过 50 MB 的 `.scd` 文件。导入结果保存在后端工作目录的 `data/scd/` 中，可用 `SENTINEL_SCD_DIRECTORY` 更改路径。每个 SQLite 文件用站点名的 UTF-8 SHA-256 命名。重新导入会在成功后替换该站点的数据库快照，失败时保留上一份。
 
 ## Recommended IDE Setup
 

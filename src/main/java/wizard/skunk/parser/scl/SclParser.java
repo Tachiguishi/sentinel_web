@@ -8,6 +8,7 @@ import wizard.skunk.parser.domain.*;
 import wizard.skunk.parser.xml.XMLHelper;
 
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.XMLConstants;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +28,9 @@ public class SclParser {
 		}
 
 		Element rootElement = getRootElement(scdFile);
+		if (!"SCL".equals(rootElement.getTagName())) {
+			throw new IllegalArgumentException("SCL root element required");
+		}
 
 		ScdParser parser = new ScdParser(rootElement, monitor);
 		parser.parse();
@@ -132,6 +136,9 @@ public class SclParser {
 
 	private Element getRootElement(File xmlFile) throws Exception {
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+		factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+		factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
 
 		return factory.newDocumentBuilder().parse(xmlFile).getDocumentElement();
 	}
