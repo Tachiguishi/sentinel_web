@@ -6,6 +6,12 @@ const router = createRouter({
   routes: [
     { path: '/', name: 'stations', component: App },
     {
+      path: '/stations/:name/bay-mapping',
+      name: 'station-bay-mapping',
+      component: () => import('../views/StationBayMappingView.vue'),
+      props: true,
+    },
+    {
       path: '/stations/:name',
       name: 'station-detail',
       component: () => import('../views/StationDetailView.vue'),

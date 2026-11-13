@@ -19,6 +19,33 @@ interface DeviceSummary {
   categoryLabel: string
 }
 
+interface BayOption {
+  code: string
+  name: string | null
+  description: string | null
+  voltage: number | null
+}
+
+interface DeviceBayMapping {
+  name: string
+  bayCode: string | null
+}
+
+interface BayGroup {
+  key: string
+  code: string | null
+  label: string
+  devices: DeviceSummary[]
+}
+
+interface VoltageGroup {
+  key: string
+  voltage: number
+  unmatched: boolean
+  bays: BayGroup[]
+  deviceCount: number
+}
+
 interface DataSetSummary {
   identity: string
   name: string
@@ -62,8 +89,9 @@ const deviceQuery = ref('')
 const categoryDialog = ref<InstanceType<typeof EditDeviceCategoryDialog> | null>(null)
 const batchMode = ref(false)
 const batchSelection = ref(new Set<string>())
+const deviceTreeElement = ref<HTMLUListElement | null>(null)
 
-function useScdRows<T>(path: string, params: () => Record<string, string> | null) {
+function useStationRows<T>(path: string, params: () => Record<string, string> | null) {
   const rows = ref<T[]>([])
   const loading = ref(false)
   const error = ref(false)
@@ -80,7 +108,7 @@ function useScdRows<T>(path: string, params: () => Record<string, string> | null
       const request = new AbortController()
       onCleanup(() => request.abort())
       try {
-        const response = await fetch(`/api/stations/scd/${path}?${new URLSearchParams(query)}`, {
+        const response = await fetch(`/api/stations/${path}?${new URLSearchParams(query)}`, {
           signal: request.signal,
         })
         if (!response.ok) throw new Error(`HTTP ${response.status}`)
@@ -100,12 +128,36 @@ function useScdRows<T>(path: string, params: () => Record<string, string> | null
 
 const {
   rows: devices,
-  loading: devicesLoading,
-  error: devicesError,
-  refresh: refreshDevices,
-} = useScdRows<DeviceSummary>('devices', () =>
-  station.value ? { name: station.value.name } : null,
+  loading: deviceRowsLoading,
+  error: deviceRowsError,
+  refresh: refreshDeviceRows,
+} = useStationRows<DeviceSummary>('scd/devices', stationQuery)
+const {
+  rows: bays,
+  loading: baysLoading,
+  error: baysError,
+  refresh: refreshBays,
+} = useStationRows<BayOption>('bays', stationQuery)
+const {
+  rows: mappings,
+  loading: mappingsLoading,
+  error: mappingsError,
+  refresh: refreshMappings,
+} = useStationRows<DeviceBayMapping>('scd/bay-mappings', stationQuery)
+const devicesLoading = computed(
+  () => deviceRowsLoading.value || baysLoading.value || mappingsLoading.value,
 )
+const devicesError = computed(() => deviceRowsError.value || baysError.value || mappingsError.value)
+
+function stationQuery() {
+  return station.value ? { name: station.value.name } : null
+}
+
+function refreshDevices() {
+  refreshDeviceRows()
+  refreshBays()
+  refreshMappings()
+}
 const currentDevice = computed(() =>
   devices.value.find(({ name }) => name === selectedDevice.value),
 )
@@ -127,6 +179,65 @@ const visibleDevices = computed(() => {
     (a, b) => categoryOrder(a) - categoryOrder(b) || deviceNameOrder.compare(a.name, b.name),
   )
 })
+const deviceTree = computed(() => {
+  const catalog = new Map(bays.value.map((bay) => [bay.code, bay]))
+  const assignments = new Map(mappings.value.map((mapping) => [mapping.name, mapping.bayCode]))
+  const groups = new Map<string, VoltageGroup>()
+  const bayGroups = new Map<string, BayGroup>()
+  for (const device of visibleDevices.value) {
+    const code = assignments.get(device.name)
+    const bay = code ? catalog.get(code) : undefined
+    const voltage = bay?.voltage ?? 0
+    const voltageKey = bay ? `voltage:${voltage}` : 'unmatched'
+    let group = groups.get(voltageKey)
+    if (!group) {
+      group = {
+        key: voltageKey,
+        voltage: bay ? voltage : 0,
+        unmatched: !bay,
+        bays: [],
+        deviceCount: 0,
+      }
+      groups.set(voltageKey, group)
+    }
+    const bayKey = bay ? `bay:${bay.code}` : 'unknown-bay'
+    let bayGroup = bayGroups.get(bayKey)
+    if (!bayGroup) {
+      bayGroup = {
+        key: bayKey,
+        code: bay?.code ?? null,
+        label: bay ? bay.description?.trim() || bay.name?.trim() || bay.code : '未知间隔',
+        devices: [],
+      }
+      bayGroups.set(bayKey, bayGroup)
+      group.bays.push(bayGroup)
+    }
+    bayGroup.devices.push(device)
+    group.deviceCount++
+  }
+  return [...groups.values()]
+    .sort((a, b) => Number(b.unmatched) - Number(a.unmatched) || b.voltage - a.voltage)
+    .map((group) => ({
+      ...group,
+      bays: group.bays.sort(
+        (a, b) =>
+          deviceNameOrder.compare(a.label, b.label) || deviceNameOrder.compare(a.key, b.key),
+      ),
+    }))
+})
+
+// The browser owns disclosure state. Reveal search results after Vue has rendered
+// the filtered groups, without mirroring asynchronously dispatched toggle events.
+watch(
+  deviceQuery,
+  () => {
+    deviceTreeElement.value?.querySelectorAll('details').forEach((group) => {
+      group.open = true
+    })
+  },
+  { flush: 'post' },
+)
+
 const visibleSelectionCount = computed(
   () => visibleDevices.value.filter(({ name }) => batchSelection.value.has(name)).length,
 )
@@ -135,7 +246,7 @@ const {
   loading: dataSetsLoading,
   error: dataSetsError,
   refresh: refreshDataSets,
-} = useScdRows<DataSetSummary>('datasets', () =>
+} = useStationRows<DataSetSummary>('scd/datasets', () =>
   station.value && selectedDevice.value
     ? { name: station.value.name, device: selectedDevice.value }
     : null,
@@ -145,7 +256,7 @@ const {
   loading: fcdaLoading,
   error: fcdaError,
   refresh: refreshFcda,
-} = useScdRows<FcdaRow>('fcda', () =>
+} = useStationRows<FcdaRow>('scd/fcda', () =>
   station.value && selectedDevice.value && selectedDataSet.value
     ? { name: station.value.name, device: selectedDevice.value, dataset: selectedDataSet.value }
     : null,
@@ -302,8 +413,15 @@ async function uploadScd(event: Event) {
         正在加载站点信息…
       </p>
       <ExportModelButton class="mt-4" :name="station?.name ?? null" :disabled="uploading" />
+      <RouterLink
+        v-if="station && !uploading"
+        :to="{ name: 'station-bay-mapping', params: { name: station.name } }"
+        class="mt-4 inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-teal-800 hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-teal-700 sm:ml-3"
+      >
+        装置与间隔配置
+      </RouterLink>
 
-      <div class="mt-8 grid gap-5 lg:grid-cols-[minmax(15rem,1fr)_minmax(0,4fr)]">
+      <div class="mt-8 grid gap-5 lg:grid-cols-[minmax(18rem,1fr)_minmax(0,4fr)]">
         <section
           aria-labelledby="device-list"
           class="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
@@ -326,6 +444,7 @@ async function uploadScd(event: Event) {
             正在上传并解析 SCD 文件…
           </p>
           <div class="mt-4" role="search" aria-label="筛选装置列表">
+            <label for="device-query" class="sr-only">筛选装置</label>
             <input
               id="device-query"
               v-model="deviceQuery"
@@ -337,7 +456,7 @@ async function uploadScd(event: Event) {
           <button
             v-if="!batchMode"
             type="button"
-            :disabled="uploading || !devices.length"
+            :disabled="uploading || devicesLoading || devicesError || !devices.length"
             class="mt-3 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-teal-800 hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-teal-700 disabled:opacity-50"
             @click="batchMode = true"
           >
@@ -389,13 +508,13 @@ async function uploadScd(event: Event) {
             </div>
           </div>
           <div v-if="devicesError" class="mt-5 text-sm">
-            <p role="alert" class="text-red-800">无法读取装置列表。</p>
+            <p role="alert" class="text-red-800">无法读取装置列表或间隔信息。</p>
             <button type="button" class="mt-2 text-teal-800 underline" @click="refreshDevices">
               重试
             </button>
           </div>
           <p v-else-if="devicesLoading" role="status" class="mt-5 text-sm text-slate-600">
-            正在读取装置…
+            正在读取装置和间隔…
           </p>
           <p
             v-else-if="!devices.length"
@@ -406,51 +525,90 @@ async function uploadScd(event: Event) {
           <p v-else-if="!visibleDevices.length" role="status" class="mt-4 text-sm text-slate-600">
             没有匹配的装置。
           </p>
-          <ul v-else class="mt-4 max-h-[32rem] space-y-1 overflow-auto p-1" aria-label="装置">
-            <li v-for="device in visibleDevices" :key="device.name" class="flex items-center">
-              <label
-                v-if="batchMode"
-                class="flex min-h-11 w-11 shrink-0 cursor-pointer items-center justify-center"
-              >
-                <input
-                  v-model="batchSelection"
-                  type="checkbox"
-                  :value="device.name"
-                  class="size-4 accent-teal-800 focus-visible:outline-2 focus-visible:outline-teal-700"
-                />
-                <span class="sr-only">选择 {{ device.name }}</span>
-              </label>
-              <button
-                type="button"
-                :aria-pressed="selectedDevice === device.name"
-                class="min-w-0 flex-1 rounded-lg px-3 py-2.5 text-left text-sm focus-visible:outline-2 focus-visible:outline-teal-700 aria-pressed:bg-teal-50 aria-pressed:text-teal-900"
-                :class="
-                  device.categoryLabel === '未知'
-                    ? 'bg-amber-50 hover:bg-amber-100'
-                    : 'hover:bg-slate-50'
-                "
-                @click="selectDevice(device.name)"
-              >
-                <span class="block font-semibold break-words">
-                  {{ device.description?.trim() || '未填写描述' }}
-                </span>
-                <span class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span class="min-w-0 text-xs break-words text-slate-600">
-                    {{ device.name }}
-                  </span>
-                  <span
-                    :title="`分类代码：${device.category}`"
-                    class="rounded px-1.5 py-0.5 text-xs"
-                    :class="
-                      device.categoryLabel === '未知'
-                        ? 'bg-amber-100 font-semibold text-amber-950 ring-1 ring-amber-300 ring-inset'
-                        : 'bg-slate-100 text-slate-700'
-                    "
+          <ul
+            v-else
+            ref="deviceTreeElement"
+            role="list"
+            class="mt-4 max-h-[32rem] space-y-2 overflow-auto p-1"
+            aria-label="装置"
+          >
+            <li v-for="voltage in deviceTree" :key="voltage.key">
+              <details open :data-voltage="voltage.voltage" :data-unmatched="voltage.unmatched">
+                <summary
+                  class="min-h-11 cursor-pointer content-center rounded-lg bg-slate-100 px-2 py-2 text-sm font-semibold marker:text-teal-800 hover:bg-slate-200 focus-visible:outline-2 focus-visible:outline-teal-700"
+                >
+                  {{ voltage.voltage }}kV
+                  <span class="ml-1 text-xs font-normal text-slate-600"
+                    >{{ voltage.deviceCount }} 个装置</span
                   >
-                    {{ device.categoryLabel }}
-                  </span>
-                </span>
-              </button>
+                </summary>
+                <ul role="list" class="mt-1 ml-2 space-y-1 border-l border-slate-200 pl-2">
+                  <li v-for="bay in voltage.bays" :key="bay.key">
+                    <details open :data-bay-code="bay.code ?? ''">
+                      <summary
+                        class="min-h-11 cursor-pointer content-center rounded-lg px-2 py-2 text-sm font-medium break-words marker:text-teal-800 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-teal-700"
+                        :title="bay.code ?? undefined"
+                      >
+                        {{ bay.label }}
+                        <span class="ml-1 text-xs font-normal text-slate-600">{{
+                          bay.devices.length
+                        }}</span>
+                      </summary>
+                      <ul role="list" class="ml-2 space-y-1 border-l border-slate-200 pl-1">
+                        <li
+                          v-for="device in bay.devices"
+                          :key="device.name"
+                          class="flex items-center"
+                        >
+                          <label
+                            v-if="batchMode"
+                            class="flex min-h-11 w-11 shrink-0 cursor-pointer items-center justify-center"
+                          >
+                            <input
+                              v-model="batchSelection"
+                              type="checkbox"
+                              :value="device.name"
+                              class="size-4 accent-teal-800 focus-visible:outline-2 focus-visible:outline-teal-700"
+                            />
+                            <span class="sr-only">选择 {{ device.name }}</span>
+                          </label>
+                          <button
+                            type="button"
+                            :aria-pressed="selectedDevice === device.name"
+                            class="min-w-0 flex-1 rounded-lg px-3 py-2.5 text-left text-sm focus-visible:outline-2 focus-visible:outline-teal-700 aria-pressed:bg-teal-50 aria-pressed:text-teal-900"
+                            :class="
+                              device.categoryLabel === '未知'
+                                ? 'bg-amber-50 hover:bg-amber-100'
+                                : 'hover:bg-slate-50'
+                            "
+                            @click="selectDevice(device.name)"
+                          >
+                            <span class="block font-semibold break-words">
+                              {{ device.description?.trim() || '未填写描述' }}
+                            </span>
+                            <span class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                              <span class="min-w-0 text-xs break-words text-slate-600">
+                                {{ device.name }}
+                              </span>
+                              <span
+                                :title="`分类代码：${device.category}`"
+                                class="rounded px-1.5 py-0.5 text-xs"
+                                :class="
+                                  device.categoryLabel === '未知'
+                                    ? 'bg-amber-100 font-semibold text-amber-950 ring-1 ring-amber-300 ring-inset'
+                                    : 'bg-slate-100 text-slate-700'
+                                "
+                              >
+                                {{ device.categoryLabel }}
+                              </span>
+                            </span>
+                          </button>
+                        </li>
+                      </ul>
+                    </details>
+                  </li>
+                </ul>
+              </details>
             </li>
           </ul>
         </section>

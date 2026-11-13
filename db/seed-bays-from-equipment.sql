@@ -1,0 +1,27 @@
+-- 从一次设备表复制测试间隔数据。保留源设备代码，不替换为 Bay 前缀。
+-- 已存在的间隔代码不修改；其余未指定字段使用目标表默认值。
+START TRANSACTION;
+
+INSERT INTO TB1042_BAY (
+    F1042_CODE,
+    F1041_CODE,
+    F1042_NAME,
+    F1042_DESC,
+    F1042_VOLTAGE
+)
+SELECT
+    e.F1043_CODE,
+    e.F1041_CODE,
+    e.F1043_NAME,
+    e.F1043_DESC,
+    e.F1043_VOLTAGE
+FROM TB1043_EQUIPMENT e
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM TB1042_BAY b
+    WHERE b.F1042_CODE = e.F1043_CODE
+);
+
+SELECT ROW_COUNT() AS inserted_rows;
+
+COMMIT;

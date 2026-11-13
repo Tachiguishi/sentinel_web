@@ -6,7 +6,7 @@ import java.util.List;
 
 final class LegacyScdSqliteIds {
 	private static final List<String> TABLES = List.of("device", "data_set", "data_item", "logical_link",
-			"port", "report_control", "sclfile", "setting_control", "voltage_level");
+			"port", "report_control", "sclfile", "setting_control", "voltage_level", "bay");
 
 	private LegacyScdSqliteIds() {}
 

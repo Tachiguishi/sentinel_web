@@ -11,6 +11,10 @@ import wizard.skunk.datasource.SqliteJdbcUrlBuilder;
 import wizard.skunk.parser.domain.IED;
 import wizard.skunk.persistence.substation.domain.Device;
 import wizard.skunk.persistence.substation.domain.DeviceCategory;
+import wizard.skunk.persistence.substation.domain.Bay;
+import wizard.skunk.persistence.substation.domain.VoltageLevel;
+import wizard.skunk.persistence.substation.repository.BayRepository;
+import wizard.skunk.persistence.substation.repository.VoltageLevelRepository;
 import wizard.skunk.persistence.substation.repository.DeviceRepository;
 
 import javax.sql.DataSource;
@@ -29,6 +33,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.function.Consumer;
 
 public class StationScdImportService {
@@ -89,6 +95,64 @@ public class StationScdImportService {
 		}
 	}
 
+	public synchronized void updateDeviceBays(String stationName, List<BayAssignment> assignments,
+			List<StationBayCatalogService.BayOption> catalog) {
+		Path database = databasePath(stationName);
+		if (Files.notExists(database)) throw new NoSuchElementException("请先导入 SCD 装置");
+		Map<String, StationBayCatalogService.BayOption> options = new HashMap<>();
+		catalog.forEach(bay -> options.put(bay.code(), bay));
+		// Validate before opening a write transaction, including callers outside the controller.
+		for (BayAssignment assignment : assignments) {
+			if (assignment.bayCode() != null && !options.containsKey(assignment.bayCode())) {
+				throw new IllegalArgumentException("无效的间隔代码");
+			}
+		}
+		write(database, false, context -> {
+			DeviceRepository devices = context.getBean(DeviceRepository.class);
+			BayRepository bays = context.getBean(BayRepository.class);
+			VoltageLevelRepository voltages = context.getBean(VoltageLevelRepository.class);
+			Map<String, Bay> byCode = new HashMap<>();
+			bays.findAll().forEach(bay -> { if (bay.getCode() != null) byCode.put(bay.getCode(), bay); });
+			Map<Integer, VoltageLevel> byVoltage = new HashMap<>();
+			voltages.findAll().forEach(voltage -> {
+				if ("k".equals(voltage.getMultiplier()) && "V".equals(voltage.getUnit())) {
+					byVoltage.put(voltage.getValue(), voltage);
+				}
+			});
+			for (BayAssignment assignment : assignments) {
+				Device device = devices.findByName(assignment.device());
+				if (device == null) throw new NoSuchElementException("装置已不存在，请刷新列表");
+				if (assignment.bayCode() == null) {
+					device.setBay(null);
+					continue;
+				}
+				var option = options.get(assignment.bayCode());
+				Bay bay = byCode.get(option.code());
+				if (bay == null) {
+					bay = new Bay();
+					bay.setCode(option.code());
+				}
+				bay.setName(option.name());
+				bay.setDescription(option.description());
+				VoltageLevel voltage = null;
+				if (option.voltage() != null) {
+					voltage = byVoltage.get(option.voltage());
+					if (voltage == null) {
+						voltage = new VoltageLevel();
+						voltage.setValue(option.voltage());
+						voltage.setMultiplier("k");
+						voltage = voltages.save(voltage);
+						byVoltage.put(option.voltage(), voltage);
+					}
+				}
+				bay.setVoltageLevel(voltage);
+				bay = bays.save(bay);
+				byCode.put(option.code(), bay);
+				device.setBay(bay);
+			}
+		});
+	}
+
 	private SclService.ParsedScd readScd(Path file, StandardMonitor monitor) {
 		SclService.ParsedScd parsed;
 		try {
@@ -137,6 +201,9 @@ public class StationScdImportService {
 					if (!hasCategoryOverride) {
 						jdbc.execute("ALTER TABLE device ADD COLUMN category_overridden BOOLEAN");
 					}
+					if (!jdbc.query("PRAGMA table_info(bay)", (rs, row) -> rs.getString("name")).contains("code")) {
+						jdbc.execute("ALTER TABLE bay ADD COLUMN code VARCHAR(48)");
+					}
 				}
 				action.accept(context);
 			});
@@ -153,4 +220,6 @@ public class StationScdImportService {
 	}
 
 	public record ImportResult(int deviceCount, LocalDateTime scdUpdatedAt) {}
+
+	public record BayAssignment(String device, String bayCode) {}
 }

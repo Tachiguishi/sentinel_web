@@ -11,11 +11,12 @@ import wizard.skunk.persistence.station.StationRepository;
 import wizard.skunk.substation.service.StationScdImportService;
 import wizard.skunk.substation.service.StationScdReadService;
 import wizard.skunk.substation.service.StationModelExportService;
+import wizard.skunk.substation.service.StationBayCatalogService;
 
 @SpringBootApplication(scanBasePackageClasses = StationController.class)
 @EntityScan(basePackageClasses = StationEntity.class)
 @EnableJpaRepositories(basePackageClasses = StationRepository.class)
-@Import({StationScdImportService.class, StationScdReadService.class, StationModelExportService.class})
+@Import({StationScdImportService.class, StationScdReadService.class, StationModelExportService.class, StationBayCatalogService.class})
 public class SentinelApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(SentinelApplication.class, args);

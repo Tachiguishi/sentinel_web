@@ -45,6 +45,20 @@ public class StationScdReadService {
 				""", DeviceSummary.class).getResultList());
 	}
 
+	public List<DeviceBayMapping> deviceBayMappings(String station) {
+		return read(station, session -> {
+			// Old snapshots have no directory code. Reading them must not change their schema.
+			boolean hasCode = session.doReturningWork(connection -> {
+				try (var statement = connection.createStatement(); var columns = statement.executeQuery("PRAGMA table_info(bay)")) {
+					while (columns.next()) if ("code".equals(columns.getString("name"))) return true;
+					return false;
+				}
+			});
+			return session.createSelectionQuery("select d.name, d.description, " + (hasCode ? "b.code" : "cast(null as String)")
+					+ " from Device d left join d.bay b order by d.name", DeviceBayMapping.class).getResultList();
+		});
+	}
+
 	public List<DataSetSummary> dataSets(String station, String device) {
 		// Earlier snapshots stored some generated IDs only as SQLite rowids.
 		return read(station, session -> {
@@ -141,6 +155,8 @@ public class StationScdReadService {
 			this(name, description, category, DeviceCategory.labelOf(category));
 		}
 	}
+
+	public record DeviceBayMapping(String name, String description, String bayCode) {}
 
 	private record DataSetRow(long id, String identity, String name, String description) {}
 

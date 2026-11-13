@@ -12,6 +12,8 @@ public class Bay {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
+	// MySQL TB1042_BAY.F1042_CODE; name remains the human-readable bay name.
+	private String code;
 	private String name;
 	private String description;
 

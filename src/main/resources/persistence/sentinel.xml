@@ -103,6 +103,7 @@
 		<column id="category" name="F1046_TYPE" type="Numeric" valid="true" />
 		<column id="uuid" name="F1046_ID" type="String" valid="true" />
 		<column id="serialNO" name="F1046_SN" type="String" valid="true" />
+		<column id="bay" name="F1042_CODE" type="String" valid="true" />
 		<column id="bayName" name="F1046_primaryEQUIPMENT" type="String" valid="true" />
 		<column id="voltage" name="F1046_VOLTAGE" type="Numeric" valid="true" />
 		<column id="substation" name="F1041_CODE" type="String" valid="true" />

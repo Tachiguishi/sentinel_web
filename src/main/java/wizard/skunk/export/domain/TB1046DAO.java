@@ -41,6 +41,7 @@ public class TB1046DAO extends IDataTransfer<TB1046IED>{
 			ied.setSubstation(stationCode);
 			ied.setSupervisory(supervisory);
 			if (device.getBay() != null) {
+				ied.setBay(device.getBay().getCode());
 				ied.setBayName(device.getBay().getName());
 				if (device.getBay().getVoltageLevel() != null) {
 					ied.setVoltage(device.getBay().getVoltageLevel().getCompilableValue());
