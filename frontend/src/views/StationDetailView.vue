@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import EditDeviceCategoryDialog from '../components/EditDeviceCategoryDialog.vue'
+import ExportModelButton from '../components/ExportModelButton.vue'
 
 const props = defineProps<{ name: string }>()
 
@@ -292,14 +293,15 @@ async function uploadScd(event: Event) {
 
     <main class="mx-auto max-w-[100rem] px-5 py-9 sm:px-8 sm:py-14">
       <p class="mb-3 text-xs font-semibold tracking-[0.2em] text-teal-800">站点详情</p>
-      <h1 class="text-3xl font-bold break-words sm:text-4xl">{{ station?.name ?? name }}</h1>
-      <p v-if="station?.description" class="mt-3 text-sm break-words text-slate-600">
+      <p v-if="station?.description" class="text-2xl font-bold break-words sm:text-1xl">
         {{ station.description }}
+        <span class="mt-3 text-sm break-words text-slate-600">{{ station?.name ?? name }}</span>
       </p>
       <p v-if="detailError" role="alert" class="mt-3 text-sm text-red-800">{{ detailError }}</p>
       <p v-else-if="!station" role="status" class="mt-3 text-sm text-slate-600">
         正在加载站点信息…
       </p>
+      <ExportModelButton class="mt-4" :name="station?.name ?? null" :disabled="uploading" />
 
       <div class="mt-8 grid gap-5 lg:grid-cols-[minmax(15rem,1fr)_minmax(0,4fr)]">
         <section
@@ -324,9 +326,6 @@ async function uploadScd(event: Event) {
             正在上传并解析 SCD 文件…
           </p>
           <div class="mt-4" role="search" aria-label="筛选装置列表">
-            <label for="device-query" class="mb-1 block text-sm font-medium text-slate-700">
-              搜索装置
-            </label>
             <input
               id="device-query"
               v-model="deviceQuery"

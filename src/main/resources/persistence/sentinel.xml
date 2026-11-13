@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<mysql>
+	<table id="TB1006DAO" name="TB1006_ANALOGDATA" valid="true">
+		<column id="code" name="F1006_CODE" type="String" valid="true" />
+		<column id="desc" name="F1006_DESC" type="String" valid="true" />
+		<column id="reference" name="F1006_REF" type="String" valid="true" />
+		<column id="parent" name="F1006_PARENT" type="String" valid="true" />
+		<column id="substation" name="F1041_CODE" type="String" valid="true" />
+		<column id="category" name="F1011_NO" type="Numeric" valid="true" />
+		<column id="invalid" name="F1006_RESERVE" type="Numeric" valid="false" />
+		<column id="computed" name="F1006_calcFlag" type="Numeric" valid="true" />
+		<column id="coefficient" name="F1006_K" type="Numeric" valid="true" />
+		<column id="baseline" name="F1006_B" type="Numeric" valid="true" />
+		<column id="upperThreshold" name="f1006_hiAlarm" type="Numeric" valid="true" />
+		<column id="lowerThreshold" name="f1006_loAlarm" type="Numeric" valid="true" />
+		<column id="saveInterval" name="f1006_savePeriod" type="Numeric" valid="true" />
+		<column id="alarmLevel" name="f1006_alarmLevel" type="Numeric" valid="true" />
+		<column id="unit" name="F1006_UNIT" type="String" valid="true" />
+	</table>
+
+	<table id="TB1016DAO" name="TB1016_STATEDATA" valid="true">
+		<column id="code" name="F1016_CODE" type="String" valid="true" />
+		<column id="desc" name="F1016_DESC" type="String" valid="true" />
+		<column id="reference" name="F1016_REF" type="String" valid="true" />
+		<column id="parent" name="F1016_PARENT" type="String" valid="true" />
+		<column id="substation" name="F1041_CODE" type="String" valid="true" />
+		<column id="category" name="F1011_NO" type="Numeric" valid="true" />
+		<column id="invalid" name="F1016_RESERVE" type="Numeric" valid="false" />
+		<column id="computed" name="F1016_calcFlag" type="Numeric" valid="true" />
+	</table>
+
+	<table id="TB1026DAO" name="TB1026_STRINGDATA" valid="true">
+		<column id="code" name="F1026_CODE" type="String" valid="true" />
+		<column id="desc" name="F1026_DESC" type="String" valid="true" />
+		<column id="reference" name="F1026_REF" type="String" valid="true" />
+		<column id="parent" name="F1026_PARENT" type="String" valid="true" />
+		<column id="substation" name="F1041_CODE" type="String" valid="true" />
+		<column id="category" name="F1011_NO" type="Numeric" valid="true" />
+		<column id="computed" name="F1026_calcFlag" type="Numeric" valid="true" />
+	</table>
+
+	<table id="TB1036DAO" name="TB1036_SETTINGDATA" valid="true">
+		<column id="code" name="F1036_CODE" type="String" valid="true" />
+		<column id="parent" name="F1036_PARENT" type="String" valid="true" />
+		<column id="substation" name="F1041_CODE" type="String" valid="true" />
+		<column id="category" name="F1036_TYPE" type="Numeric" valid="true" />
+		<column id="reference" name="F1036_REF" type="String" valid="true" />
+		<column id="desc" name="F1036_DESC" type="String" valid="true" />
+		<column id="dataType" name="F1036_DATATYPE" type="Numeric" valid="true" />
+		<column id="unit" name="F1036_UNIT" type="String" valid="true" />
+		<column id="stepSize" name="F1036_STEPSIZE" type="Numeric" valid="true" />
+		<column id="minValue" name="F1036_VALUEMIN" type="Numeric" valid="true" />
+		<column id="maxValue" name="F1036_VALUEMAX" type="Numeric" valid="true" />
+	</table>
+
+	<table id="TB1041CommDAO" name="master_server_ip_list" valid="false">
+		<column id="code" name="code" type="String" valid="true" />
+		<column id="l1_ip_a" name="l1_ip_a" type="String" valid="true" />
+		<column id="l1_ip_b" name="l1_ip_b" type="String" valid="true" />
+		<column id="l2_ip_a" name="l2_ip_a" type="String" valid="true" />
+		<column id="l2_ip_b" name="l2_ip_b" type="String" valid="true" />
+		<column id="instance" name="instance" type="String" valid="true" />
+		<column id="protocol" name="protocol_type" type="Numeric" valid="true" />
+		<column id="type" name="substation_type" type="Numeric" valid="true" />
+	</table>
+
+	<table id="TB1041DAO" name="TB1041_SUBSTATION" valid="false">
+		<column id="code" name="F1041_CODE" type="String" valid="true" />
+		<column id="name" name="F1041_NAME" type="String" valid="true" />
+		<column id="desc" name="F1041_DESC" type="String" valid="true" />
+		<column id="sectorCode" name="F1040_CODE" type="String" valid="true" />
+		<column id="sectorDesc" name="F1041_DqDESC" type="String" valid="true" />
+		<column id="omsID" name="F1041_omsID" type="String" valid="false" />
+		<column id="dcID" name="F1041_dcID" type="String" valid="false" />
+	</table>
+
+	<table id="TB1042DAO" name="TB1042_BAY" valid="false">
+		<column id="code" name="F1042_CODE" type="String" valid="true" />
+		<column id="name" name="F1042_NAME" type="String" valid="true" />
+		<column id="desc" name="F1042_DESC" type="String" valid="true" />
+		<column id="voltage" name="F1042_VOLTAGE" type="Numeric" valid="true" />
+		<column id="substation" name="F1041_CODE" type="String" valid="true" />
+	</table>
+
+	<table id="TB1043DAO" name="TB1043_EQUIPMENT" valid="true">
+		<column id="code" name="F1043_CODE" type="String" valid="true" />
+		<column id="bay" name="F1042_CODE" type="String" valid="true" />
+		<column id="name" name="F1043_NAME" type="String" valid="true" />
+		<column id="desc" name="F1043_DESC" type="String" valid="true" />
+		<column id="virtual" name="F1043_isVIRTUAL" type="Numeric" valid="true" />
+		<column id="category" name="F1043_TYPE" type="Numeric" valid="true" />
+		<column id="manager" name="F1043_MANAGER" type="String" valid="true" />
+		<column id="uuid" name="F1043_ID" type="String" valid="true" />
+	</table>
+
+	<table id="TB1046DAO" name="TB1046_IED" valid="true">
+		<column id="code" name="F1046_CODE" type="String" valid="true" />
+		<column id="name" name="F1046_NAME" type="String" valid="true" />
+		<column id="desc" name="F1046_DESC" type="String" valid="true" />
+		<column id="manufacturer" name="F1046_MANUFACTUROR" type="String" valid="true" />
+		<column id="model" name="F1046_MODEL" type="String" valid="true" />
+		<column id="version" name="F1046_configVERSION" type="String" valid="true" />
+		<column id="category" name="F1046_TYPE" type="Numeric" valid="true" />
+		<column id="uuid" name="F1046_ID" type="String" valid="true" />
+		<column id="serialNO" name="F1046_SN" type="String" valid="true" />
+		<column id="bayName" name="F1046_primaryEQUIPMENT" type="String" valid="true" />
+		<column id="voltage" name="F1046_VOLTAGE" type="Numeric" valid="true" />
+		<column id="substation" name="F1041_CODE" type="String" valid="true" />
+		<column id="cabinet" name="F1050_CODE" type="String" valid="false" />
+		<column id="supervisory" name="F1080_CODE" type="String" valid="true" />
+	</table>
+
+	<table id="TB1047DAO" name="TB1047_BOARD" valid="true">
+		<column id="code" name="F1047_CODE" type="String" valid="true" />
+		<column id="name" name="F1047_SLOT" type="String" valid="true" />
+		<column id="desc" name="F1047_DESC" type="String" valid="true" />
+		<column id="model" name="F1047_TYPE" type="String" valid="true" />
+		<column id="device" name="F1046_CODE" type="String" valid="true" />
+	</table>
+
+	<table id="TB1048DAO" name="TB1048_PORT" valid="true">
+		<column id="code" name="F1048_CODE" type="String" valid="true" />
+		<column id="name" name="F1048_NO" type="String" valid="true" />
+		<column id="desc" name="F1048_DESC" type="String" valid="true" />
+		<column id="direction" name="F1048_DIRECTION" type="Numeric" valid="true" />
+		<column id="plug" name="F1048_PLUG" type="Numeric" valid="true" />
+		<column id="board" name="F1047_CODE" type="String" valid="true" />
+	</table>
+
+	<table id="TB1049DAO" name="TB1049_REGION" valid="true">
+		<column id="code" name="F1049_CODE" type="String" valid="true" />
+		<column id="name" name="F1049_NAME" type="String" valid="true" />
+		<column id="desc" name="F1049_DESC" type="String" valid="true" />
+		<column id="outdoor" name="F1049_AREA" type="Numeric" valid="true" />
+		<column id="substation" name="F1041_CODE" type="String" valid="true" />
+	</table>
+
+	<table id="TB1050DAO" name="TB1050_CUBICLE" valid="true">
+		<column id="code" name="F1050_CODE" type="String" valid="true" />
+		<column id="name" name="F1050_NAME" type="String" valid="true" />
+		<column id="desc" name="F1050_DESC" type="String" valid="true" />
+		<column id="region" name="F1049_CODE" type="String" valid="true" />
+	</table>
+
+	<table id="TB1051DAO" name="TB1051_CABLE" valid="true">
+		<column id="code" name="F1051_CODE" type="String" valid="true" />
+		<column id="name" name="F1051_NAME" type="String" valid="true" />
+		<column id="desc" name="F1051_DESC" type="String" valid="true" />
+		<column id="length" name="F1051_LENGTH" type="Numeric" valid="true" />
+		<column id="coreNum" name="F1051_coreNUM" type="Numeric" valid="true" />
+		<column id="type" name="F1051_TYPE" type="Numeric" valid="true" />
+		<column id="cubicleA" name="F1050_CODE_A" type="String" valid="true" />
+		<column id="cubicleB" name="F1050_CODE_B" type="String" valid="true" />
+		<column id="substation" name="F1041_CODE" type="String" valid="true" />
+	</table>
+
+	<table id="TB1052DAO" name="TB1052_CORE" valid="true">
+		<column id="code" name="F1052_CODE" type="String" valid="true" />
+		<column id="name" name="F1052_NO" type="Numeric" valid="true" />
+		<column id="type" name="F1052_TYPE" type="Numeric" valid="true" />
+		<column id="cable" name="F1052_PARENT_CODE" type="String" valid="true" />
+		<column id="portA" name="F1048_CODE_A" type="String" valid="true" />
+		<column id="portB" name="F1048_CODE_B" type="String" valid="true" />
+		<column id="connect" name="F1053_CODE" type="String" valid="true" />
+	</table>
+
+	<table id="TB1053DAO" name="TB1053_PHYSCONN" valid="true">
+		<column id="code" name="F1053_CODE" type="String" valid="true" />
+		<column id="type" name="F1053_TYPE" type="Numeric" valid="true" />
+		<column id="portA" name="F1048_CODE_A" type="String" valid="true" />
+		<column id="portB" name="F1048_CODE_B" type="String" valid="true" />
+		<column id="deviceA" name="F1046_CODE_A" type="String" valid="true" />
+		<column id="deviceB" name="F1046_CODE_B" type="String" valid="true" />
+		<column id="substation" name="F1041_CODE" type="String" valid="true" />
+	</table>
+
+	<table id="TB1054DAO" name="TB1054_RCB" valid="true">
+		<column id="code" name="F1054_CODE" type="String" valid="true" />
+		<column id="substationCode" name="F1041_CODE" type="String" valid="true" />
+		<column id="device" name="F1046_CODE" type="String" valid="true" />
+		<column id="deviceName" name="F1046_NAME" type="String" valid="true" />
+		<column id="reference" name="F1054_RPTRef" type="String" valid="true" />
+		<column id="dsName" name="F1054_DATASET" type="String" valid="true" />
+		<column id="dsDesc" name="F1054_DsDESC" type="String" valid="true" />
+		<column id="buffered" name="F1054_isBRcb" type="Numeric" valid="true" />
+		<column id="type" name="F1054_cbTYPE" type="Numeric" valid="true" />
+	</table>
+
+	<table id="TB1055DAO" name="TB1055_GCB" valid="true">
+		<column id="code" name="F1055_CODE" type="String" valid="true" />
+		<column id="device" name="F1046_CODE" type="String" valid="true" />
+		<column id="name" name="F1055_cbNAME" type="String" valid="true" />
+		<column id="reference" name="F1055_CBRef" type="String" valid="true" />
+		<column id="dsName" name="F1055_DATASET" type="String" valid="true" />
+		<column id="dsDesc" name="F1055_DESC" type="String" valid="true" />
+		<column id="macAddr" name="F1055_macADDR" type="String" valid="true" />
+		<column id="vlanID" name="F1055_vlanID" type="String" valid="true" />
+		<column id="vlanPriority" name="F1055_vlanPRIORITY" type="String" valid="true" />
+		<column id="appID" name="F1055_APPID" type="String" valid="true" />
+		<column id="acquisition" name="F1071_CODE" type="String" valid="true" />
+	</table>
+
+	<table id="TB1056DAO" name="TB1056_SVCB" valid="true">
+		<column id="code" name="F1056_CODE" type="String" valid="true" />
+		<column id="device" name="F1046_CODE" type="String" valid="true" />
+		<column id="name" name="F1056_cbNAME" type="String" valid="true" />
+		<column id="reference" name="F1056_CBRef" type="String" valid="true" />
+		<column id="dsName" name="F1056_DATASET" type="String" valid="true" />
+		<column id="dsDesc" name="F1056_DESC" type="String" valid="true" />
+		<column id="macAddr" name="F1056_macADDR" type="String" valid="true" />
+		<column id="vlanID" name="F1056_vlanID" type="String" valid="true" />
+		<column id="vlanPriority" name="F1056_vlanPRIORITY" type="String" valid="true" />
+		<column id="appID" name="F1056_APPID" type="String" valid="true" />
+		<column id="acquisition" name="F1071_CODE" type="String" valid="true" />
+	</table>
+
+	<table id="TB1057DAO" name="TB1057_SGCB" valid="true">
+		<column id="code" name="F1057_CODE" type="String" valid="true" />
+		<column id="device" name="F1046_CODE" type="String" valid="true" />
+		<column id="name" name="F1057_cbNAME" type="String" valid="true" />
+		<column id="reference" name="F1057_CBRef" type="String" valid="true" />
+		<column id="dsName" name="F1057_DATASET" type="String" valid="true" />
+		<column id="dsDesc" name="F1057_DsDESC" type="String" valid="true" />
+	</table>
+
+	<table id="TB1058DAO" name="TB1058_MMSFCDA" valid="true">
+		<column id="code" name="F1058_CODE" type="String" valid="true" />
+		<column id="substationCode" name="F1041_CODE" type="String" valid="true" />
+		<column id="device" name="F1046_CODE" type="String" valid="true" />
+		<column id="rcb" name="F1054_CODE" type="String" valid="true" />
+		<column id="reference" name="F1058_refAddr" type="String" valid="true" />
+		<column id="daRef" name="F1058_daRefAddr" type="String" valid="true" />
+		<column id="index" name="F1058_INDEX" type="Numeric" valid="true" />
+		<column id="desc" name="F1058_DESC" type="String" valid="true" />
+		<column id="dataType" name="F1058_DATATYPE" type="Numeric" valid="true" />
+		<column id="cdc" name="F1058_CDC" type="String" valid="true" />
+		<column id="value" name="DATA_CODE" type="String" valid="true" />
+	</table>
+
+	<table id="TB1059DAO" name="TB1059_SGFCDA" valid="true">
+		<column id="code" name="F1059_CODE" type="String" valid="true" />
+		<column id="device" name="F1046_CODE" type="String" valid="true" />
+		<column id="sgcb" name="F1057_CODE" type="String" valid="true" />
+		<column id="reference" name="F1059_refAddr" type="String" valid="true" />
+		<column id="index" name="F1059_INDEX" type="Numeric" valid="true" />
+		<column id="desc" name="F1059_DESC" type="String" valid="true" />
+		<column id="dataType" name="F1059_DATATYPE" type="Numeric" valid="true" />
+		<column id="unit" name="F1059_UNIT" type="String" valid="false" />
+		<column id="stepSize" name="F1059_stepSize" type="Numeric" valid="false" />
+		<column id="minValue" name="F1059_valueMin" type="Numeric" valid="false" />
+		<column id="maxValue" name="F1059_valueMax" type="Numeric" valid="false" />
+	</table>
+
+	<table id="TB1060DAO" name="TB1060_SPFCDA" valid="true">
+		<column id="code" name="F1060_CODE" type="String" valid="true" />
+		<column id="device" name="F1046_CODE" type="String" valid="true" />
+		<column id="reference" name="F1060_refAddr" type="String" valid="true" />
+		<column id="index" name="F1060_INDEX" type="Numeric" valid="true" />
+		<column id="desc" name="F1060_DESC" type="String" valid="true" />
+		<column id="dataType" name="F1060_DATATYPE" type="Numeric" valid="true" />
+		<column id="unit" name="F1060_UNIT" type="String" valid="false" />
+		<column id="stepSize" name="F1060_stepSize" type="Numeric" valid="false" />
+		<column id="minValue" name="F1060_valueMin" type="Numeric" valid="false" />
+		<column id="maxValue" name="F1060_valueMax" type="Numeric" valid="false" />
+		<column id="dataset" name="F1060_datasetREF" type="String" valid="true" />
+	</table>
+
+	<table id="TB1061DAO" name="TB1061_POUT" valid="true">
+		<column id="code" name="F1061_CODE" type="String" valid="true" />
+		<column id="device" name="F1046_CODE" type="String" valid="true" />
+		<column id="controlBlock" name="CB_CODE" type="String" valid="true" />
+		<column id="reference" name="F1061_refAddr" type="String" valid="true" />
+		<column id="index" name="F1061_INDEX" type="Numeric" valid="true" />
+		<column id="desc" name="F1061_DESC" type="String" valid="true" />
+		<column id="strap" name="F1064_CODE" type="String" valid="true" />
+		<column id="value" name="DATA_CODE" type="String" valid="true" />
+	</table>
+
+	<table id="TB1062DAO" name="TB1062_PIN" valid="true">
+		<column id="code" name="F1062_CODE" type="String" valid="true" />
+		<column id="device" name="F1046_CODE" type="String" valid="true" />
+		<column id="reference" name="F1062_refAddr" type="String" valid="true" />
+		<column id="desc" name="F1062_DESC" type="String" valid="true" />
+		<column id="strap" name="F1064_CODE" type="String" valid="true" />
+		<column id="category" name="F1011_NO" type="Numeric" valid="true" />
+		<column id="applied" name="F1062_isUsed" type="Numeric" valid="true" />
+	</table>
+
+	<table id="TB1063DAO" name="TB1063_CIRCUIT" valid="true">
+		<column id="code" name="F1063_CODE" type="String" valid="true" />
+		<column id="sendDevice" name="F1046_CODE_iedSEND" type="String" valid="true" />
+		<column id="output" name="F1061_CODE_pSEND" type="String" valid="true" />
+		<column id="receiveDevice" name="F1046_CODE_iedRECV" type="String" valid="true" />
+		<column id="input" name="F1062_CODE_pRECV" type="String" valid="true" />
+		<column id="logicalLink" name="F1065_CODE" type="String" valid="true" />
+		<column id="receivedFeedback" name="F1061_CODE_convCHK1" type="String" valid="false" />
+		<column id="finishedFeedback" name="F1061_CODE_convCHK2" type="String" valid="false" />
+		<column id="reserve" name="F1063_reserve" type="String" valid="true" />
+	</table>
+
+	<table id="TB1064DAO" name="TB1064_STRAP" valid="true">
+		<column id="code" name="F1064_CODE" type="String" valid="true" />
+		<column id="device" name="F1046_CODE" type="String" valid="true" />
+		<column id="desc" name="F1064_DESC" type="String" valid="true" />
+		<column id="category" name="F1011_NO" type="Numeric" valid="true" />
+	</table>
+
+	<table id="TB1065DAO" name="TB1065_LOGICALLINK" valid="true">
+		<column id="code" name="F1065_CODE" type="String" valid="true" />
+		<column id="type" name="F1065_TYPE" type="Numeric" valid="true" />
+		<column id="sendDevice" name="F1046_CODE_iedSEND" type="String" valid="true" />
+		<column id="receiveDevice" name="F1046_CODE_iedRECV" type="String" valid="true" />
+		<column id="controlBlock" name="F1065_cbCode" type="String" valid="true" />
+	</table>
+
+	<table id="TB1066DAO" name="TB1066_PROTMMXU" valid="false">
+		<column id="code" name="F1066_CODE" type="String" valid="true" />
+		<column id="transformer" name="F1067_CODE" type="String" valid="true" />
+		<column id="sampledValue" name="F1006_CODE" type="String" valid="true" />
+		<column id="ratedValue" name="F1066_RATING" type="Numeric" valid="true" />
+		<column id="thresholdType" name="F1066_cmpTYPE" type="Numeric" valid="true" />
+		<column id="magnitudeThreshold" name="F1066_diffLMT" type="Numeric" valid="true" />
+		<column id="angleThreshold" name="F1066_angDiffLMT" type="Numeric" valid="true" />
+	</table>
+
+	<table id="TB1067DAO" name="TB1067_CTVTSECONDARY" valid="false">
+		<column id="code" name="F1067_CODE" type="String" valid="true" />
+		<column id="device" name="F1043_CODE" type="String" valid="true" />
+		<column id="name" name="F1067_NAME" type="String" valid="true" />
+		<column id="desc" name="F1067_DESC" type="String" valid="true" />
+		<column id="index" name="F1067_INDEX" type="Numeric" valid="true" />
+		<column id="type" name="F1067_TYPE" type="Numeric" valid="true" />
+		<column id="terminalIndex" name="F1067_TermNo" type="String" valid="true" />
+		<column id="circuitIndex" name="F1067_circNO" type="String" valid="true" />
+	</table>
+
+	<table id="TB1070DAO" name="TB1070_MMSSERVER" valid="true">
+		<column id="code" name="F1070_CODE" type="String" valid="true" />
+		<column id="device" name="F1046_CODE" type="String" valid="true" />
+		<column id="ipA" name="F1070_IP_A" type="String" valid="true" />
+		<column id="ipB" name="F1070_IP_B" type="String" valid="true" />
+		<column id="crc" name="F1070_iedCRC" type="String" valid="false" />
+		<column id="crcReference" name="F1070_crcPATH" type="String" valid="false" />
+		<column id="group" name="F1070_INST" type="String" valid="true" />
+	</table>
+
+	<table id="TB1071DAO" name="TB1071_DAU" valid="false">
+		<column id="code" name="F1071_CODE" type="String" valid="true" />
+		<column id="device" name="F1046_CODE" type="String" valid="true" />
+		<colunn id="desc" name="F1071_DESC" type="String" valid="true" />
+		<column id="ip" name="F1071_IPADDR" type="String" valid="true" />
+	</table>
+
+	<table id="TB1073DAO" name="TB1073_LLINKPHYRELATION" valid="false">
+		<column id="code" name="F1073_CODE" type="String" valid="true" />
+		<column id="logicalLink" name="F1065_CODE" type="String" valid="true" />
+		<column id="physicalLink" name="F1053_CODE" type="String" valid="true" />
+	</table>
+
+	<table id="TB1074DAO" name="TB1074_SVCTVTRELATION" valid="false">
+		<column id="code" name="F1074_CODE" type="String" valid="true" />
+		<column id="transformer" name="F1067_CODE" type="String" valid="true" />
+		<column id="sampledValue" name="F1061_CODE" type="String" valid="true" />
+	</table>
+
+	<table id="TB1075DAO" name="TB1075_CTRLDATA" valid="false">
+		<column id="code" name="F1075_CODE" type="String" valid="true" />
+		<column id="device" name="F1046_CODE" type="String" valid="true" />
+		<column id="desc" name="F1075_DESC" type="String" valid="true" />
+		<column id="reference" name="F1075_ctrlREF" type="String" valid="true" />
+		<column id="ctlModel" name="F1075_sboWf" type="Numeric" valid="true" />
+	</table>
+
+	<table id="TB1077DAO" name="TB1077_HARDSTRAP" valid="false">
+		<column id="code" name="F1077_CODE" type="String" valid="true" />
+		<column id="desc" name="F1077_DESC" type="String" valid="true" />
+		<column id="deviceName" name="F1046_NAME" type="String" valid="true" />
+		<column id="deviceUUID" name="F1046_ID" type="String" valid="true" />
+		<column id="cabinetName" name="F1077_CUBICLE_NAME" type="String" valid="true" />
+		<column id="cabinetUUID" name="F1077_CUBICLE_ID" type="String" valid="true" />
+		<column id="row" name="F1077_ROW" type="Numeric" valid="true" />
+		<column id="col" name="F1077_COL" type="Numeric" valid="true" />
+		<column id="type" name="F1011_NO" type="Numeric" valid="true" />
+		<column id="value" name="F1016_CODE" type="String" valid="true" />
+		<column id="substation" name="F1041_CODE" type="String" valid="true" />
+	</table>
+
+	<table id="TB1087DAO" name="TB1087_ALARMDATA" valid="false">
+		<column id="code" name="F1087_CODE" type="String" valid="true" />
+		<column id="value" name="F1016_CODE" type="String" valid="true" />
+		<column id="board" name="F1047_CODE" type="String" valid="true" />
+		<column id="level" name="F1087_alarmLevel" type="Numeric" valid="true" />
+		<column id="effect" name="F1087_INCIDENCE" type="String" valid="true" />
+		<column id="suggestion" name="F1087_SUGGESTION" type="String" valid="true" />
+	</table>
+
+	<table id="TB1200DAO" name="TB1200_FEGROUP" valid="false" />
+
+	<table id="TBMMSDAO" name="mms_server_config" valid="false" />
+</mysql>
